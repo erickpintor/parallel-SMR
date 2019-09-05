@@ -27,7 +27,24 @@ Late scheduling is based on a dependency graph, there are several implementation
 
 - **Ian Escobar, Fernando Dotti, Eduardo Alchieri and Fernando Pedone. Boosting concurrency in Parallel State Machine Replication. ACM/IFIP International Middleware Conference 2019.**
 
-In the following we explain how to implemente and execute an application using these techiques. We use as a demo the linked list implemetation used in the experiments reported in the previouly mentioned paper.
+In the following we explain how to implemente and execute an application using these techiques. For this, we use the linked list demo used in the experiments reported in the previouly mentioned paper.
+
+**Implementation**
+Basically, to implementat a replicated service it is necessary to follow the same steps used in BFT-SMaRt (https://github.com/bft-smart/library/wiki/Getting-Started-with-BFT-SMaRt). Additionally, it is necessary to inform the requests conflicts by providing a conflict definition,as presented below. The linked list operations used in the experiments was the following: add -- to include (write) an element in the list; and contains -- to check if some element is in the list (read). This conflict definition states tha two requests conflics if at least one of them is a write request, otherwise they do not conflict. 
+
+Afterwards, it is necessary to create a CBASEServiceReplica object providing the conflict definition, the number of worker threads, the graph type (see below), among some other parameters already used in BFT-SMaRt.
+
+ConflictDefinition confDefinition = new ConflictDefinition() {
+     public boolean isDependent(MessageContextPair r1, MessageContextPair r2) {
+             if(r1.classId == ParallelMapping.WRITE || r2.classId == ParallelMapping.WRITE){
+                        return true;
+              }
+              return false;
+       }
+ }
+ new CBASEServiceReplica(replicaId, executor, recoverable, numberThreads, confDefinition, graphType);
+
+**Execution**
 
 ### Early Scheduling
 

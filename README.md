@@ -29,11 +29,13 @@ Late scheduling is based on a dependency graph, there are several implementation
 
 In the following we explain how to implemente and execute an application using these techiques. For this, we use the linked list demo used in the experiments reported in the previouly mentioned paper.
 
-**Implementation**
+**Implementation.**
+
 Basically, to implementat a replicated service it is necessary to follow the same steps used in BFT-SMaRt (https://github.com/bft-smart/library/wiki/Getting-Started-with-BFT-SMaRt). Additionally, it is necessary to inform the requests conflicts by providing a conflict definition,as presented below. The linked list operations used in the experiments was the following: add -- to include (write) an element in the list; and contains -- to check if some element is in the list (read). This conflict definition states tha two requests conflics if at least one of them is a write request, otherwise they do not conflict. 
 
 Afterwards, it is necessary to create a CBASEServiceReplica object providing the conflict definition, the number of worker threads, the graph type (see below), among some other parameters already used in BFT-SMaRt.
 
+```
 ConflictDefinition confDefinition = new ConflictDefinition() {
      public boolean isDependent(MessageContextPair r1, MessageContextPair r2) {
              if(r1.classId == ParallelMapping.WRITE || r2.classId == ParallelMapping.WRITE){
@@ -43,8 +45,57 @@ ConflictDefinition confDefinition = new ConflictDefinition() {
        }
  }
  new CBASEServiceReplica(replicaId, executor, recoverable, numberThreads, confDefinition, graphType);
+```
 
-**Execution**
+**Execution.**
+
+It is necessary to execute the server replicas and the clients using the p_bftsmatrun.sh script, as follows.
+
+1) To execute a server replica, it is necessary to use the following command.
+
+```
+./p_bftsmartrun.sh demo.list.ListServer <process id> <num threads> <initial entries> <late scheduling?> <graph type>
+
+process id = the process identifier
+num threads = number of worker threads
+initial entries = the initial list size; use 0 for the tradition sequential SMR
+late scheduling? = true to use the late scheduling tecnique, false for early scheduling
+graph type = the graph synchronization strategy to be used. It can be coarseLock, fineLock and lockFree (see the paper for details)
+```
+
+For example, you should use the following commands to execute three replicas (to tolerate upt to one crash failure) using the lock free graph, 10 threads and 10k entries in the list.
+
+```
+./p_bftsmartrun.sh demo.list.ListServer 0 10 10000 true lockFree
+./p_bftsmartrun.sh demo.list.ListServer 1 10 10000 true lockFree
+./p_bftsmartrun.sh demo.list.ListServer 1 10 10000 true lockFree
+
+```
+
+1) To execute the clients, it is necessary to use the following command.
+
+
+```
+./p_bftsmartrun.sh demo.list.ListClientMO <num clients> <client id> <number of requests> <interval> <maxIndex> <parallel?> <operations per request> <conflict percent>
+
+num clients = number of threads clients to be created in the process, each thread represents one client
+client id = the client identifier
+number of requests = the number of requests to be sent during the execution
+interval = waiting time between requests
+maxIndex = the list size, so the clients will use in the requests a random value within the range 0 - maxIndex-1
+parallel? = true for parallel execution, false otherwise
+operations per request = number of operations contained in a request
+conflict percent = the percentage of write requests in the workload
+```
+For example, you should use the following commands to execute 200 clients distributed in four machines/processes, using a workload with 10% of writes.
+
+```
+./p_bftsmartrun.sh demo.list.ListClientMO 50 4001 100000 0 10000 true 50 10
+./p_bftsmartrun.sh demo.list.ListClientMO 50 5001 100000 0 10000 true 50 10
+./p_bftsmartrun.sh demo.list.ListClientMO 50 6001 100000 0 10000 true 50 10
+./p_bftsmartrun.sh demo.list.ListClientMO 50 7001 100000 0 10000 true 50 10
+
+```
 
 ### Early Scheduling
 

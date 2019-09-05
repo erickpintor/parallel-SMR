@@ -3,7 +3,7 @@
 
 This package contains the source code that implements a parallel SMR based on BFT-SMaRt (src/), binary file (dist/), libraries needed (lib/), running script (p_smartrun.sh) and configuration files (config/). For a detailed explanation about how to configure the system, please take a look at the BFT-SMaRt github page (https://github.com/bft-smart/library).
 
-## Parallel State Machine Replication Overview
+## Overview
 
 State machine replication (SMR) is a conceptually simple, yet effective approach to rendering systems fault-tolerant.
 The basic idea is that server replicas execute client requests deterministically and in the same order. Consequently, replicas transition through the same sequence of states and produce the same output. State machine replication can tolerate a configurable number of faulty replicas. Moreover, application programmers can focus on the inherent complexity of the application, while avoiding the difficulty of handling replica failures. 
@@ -30,3 +30,5 @@ Late scheduling is based on a dependency graph, there are several implementation
 In the following we explain how to implemente and execute an application using these techiques. We use as a demo the linked list implemetation used in the experiments reported in the previouly mentioned paper.
 
 ### Early Scheduling
+
+In this technique ...

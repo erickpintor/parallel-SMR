@@ -29,7 +29,7 @@ This library implements the late and early scheduling techniques, presented belo
 
 Late scheduling is based on a Conflict-Ordered Set (COS) used to track conflicts. The current COS implementations are based on a dependency graph. There are several implementations of this graph that lead to different level of concurrency and performance. The late scheduling techniques implemented in this library were published in the following paper.
 
-- **Ian Escobar, Fernando Dotti, Eduardo Alchieri and Fernando Pedone. Boosting concurrency in Parallel State Machine Replication. ACM/IFIP International Middleware Conference, 2019.** (link to be included!)
+- **Ian Escobar, Fernando Dotti, Eduardo Alchieri and Fernando Pedone. Boosting concurrency in Parallel State Machine Replication. ACM/IFIP International Middleware Conference, 2019.** (http://2019.middleware-conference.org/)
 
 In the following we explain how to implement and execute an application using these techiques. For this, we use the linked list demo used in the experiments reported in the previouly mentioned paper.
 
@@ -103,4 +103,10 @@ For example, you should use the following commands to execute 200 clients distri
 
 ### Early Scheduling
 
-In this technique ...
+This technique uses the notion of classes of requests used by a programmer to express the concurrency in an application.
+In brief, the idea is to group service requests in classes and then specify how classes must be synchronized.
+For example, we can model the previously mentioned linked list application with a class of read requests and a class of write requests. The class of write requests conflicts with itself and with the class of read requests.
+This ensures that a write is serialized with reads and with other writes. It is also possible to consider more elaborate concurrency models that assume sharded application state with read and write operations within and across shards.
+Afterwards, these requests classes are statically mapped to working threads. The client needs to inform the class its request belongs and the scheduler dispatches it according with this information. A detailed description about this scheduling technique can be found in the following paper:
+
+- **Eduardo Alchieri, Fernando Dotti and Fernando Pedone. Early Scheduling in Parallel State Machine Replication. ACM Symposium on Cloud Computing, 2018.** (https://dl.acm.org/citation.cfm?id=3267825)

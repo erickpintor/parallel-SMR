@@ -1,7 +1,7 @@
 # Parallel State Machine Replication (SMR)
 
 
-This package contains the source code that implements a parallel SMR based on BFT-SMaRt (src/), binary file (dist/), libraries needed (lib/), running script (p_smartrun.sh) and configuration files (config/). For a detailed explanation about how to configure the system, please take a look at the BFT-SMaRt github page (https://github.com/bft-smart/library).
+This package contains the source code that implements several different techniques for parallel SMR built on top of BFT-SMaRt (src/), the binary file (dist/), the libraries needed (lib/), the running script (p_smartrun.sh) and the configuration files (config/). For a detailed explanation about how to configure the system, please check the BFT-SMaRt github page (https://github.com/bft-smart/library).
 
 ## Overview
 

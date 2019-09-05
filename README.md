@@ -27,15 +27,15 @@ This library implements the late and early scheduling techniques, presented belo
 
 ### Late Scheduling
 
-Late scheduling is based on a dependency graph, there are several implementations of this graph that lead to different level of concurrency and performance. The late scheduling techniques implemented in this library were published in the following paper.
+Late scheduling is based on a Conflict-Ordered Set (COS) used to track conflicts. The current COS implementations are based on a dependency graph. There are several implementations of this graph that lead to different level of concurrency and performance. The late scheduling techniques implemented in this library were published in the following paper.
 
 - **Ian Escobar, Fernando Dotti, Eduardo Alchieri and Fernando Pedone. Boosting concurrency in Parallel State Machine Replication. ACM/IFIP International Middleware Conference, 2019.** (link to be included!)
 
-In the following we explain how to implemente and execute an application using these techiques. For this, we use the linked list demo used in the experiments reported in the previouly mentioned paper.
+In the following we explain how to implement and execute an application using these techiques. For this, we use the linked list demo used in the experiments reported in the previouly mentioned paper.
 
 **Implementation.**
 
-Basically, to implementat a replicated service it is necessary to follow the same steps used in BFT-SMaRt (https://github.com/bft-smart/library/wiki/Getting-Started-with-BFT-SMaRt). Additionally, it is necessary to inform the requests conflicts by providing a conflict definition,as presented below. The linked list operations used in the experiments was the following: add -- to include (write) an element in the list; and contains -- to check if some element is in the list (read). This conflict definition states tha two requests conflics if at least one of them is a write request, otherwise they do not conflict. 
+Basically, to implement a replicated service it is necessary to follow the same steps used in BFT-SMaRt (https://github.com/bft-smart/library/wiki/Getting-Started-with-BFT-SMaRt). Additionally, it is necessary to inform the requests conflicts by providing a conflict definition,as presented below. The linked list operations used in the experiments was the following: add -- to include (write) an element in the list; and contains -- to check if some element is in the list (read). This conflict definition states tha two requests conflics if at least one of them is a write request, otherwise they do not conflict. 
 
 Afterwards, it is necessary to create a CBASEServiceReplica object providing the conflict definition, the number of worker threads, the graph type (see below), among some other parameters already used in BFT-SMaRt.
 

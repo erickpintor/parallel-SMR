@@ -19,3 +19,14 @@ Existing proposals differ on how dependency-based scheduling is performed to pro
 - Static scheduling protocols: Scheduling decisions are made before requests are ordered for execution. 
 Thus, there is no request scheduling at the replicas.
 
+This library implements the late and early scheduling techniques, presented below.
+
+### Late Scheduling
+
+Late scheduling is based on a dependency graph, there are several implementations of this graph that lead to different level of concurrency and performance. The late scheduling techniques implemented in this library were published in the following paper.
+
+- **Ian Escobar, Fernando Dotti, Eduardo Alchieri and Fernando Pedone. Boosting concurrency in Parallel State Machine Replication. ACM/IFIP International Middleware Conference 2019.**
+
+In the following we explain how to implemente and execute an application using these techiques. We use as a demo the linked list implemetation used in the experiments reported in the previouly mentioned paper.
+
+### Early Scheduling

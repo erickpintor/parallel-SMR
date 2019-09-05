@@ -76,7 +76,7 @@ For example, you should use the following commands to execute three replicas (to
 
 ```
 
-1) To execute the clients, it is necessary to use the following command.
+2) To execute the clients, it is necessary to use the following command.
 
 
 ```

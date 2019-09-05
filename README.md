@@ -19,7 +19,7 @@ Existing proposals differ on how dependency-based scheduling is performed to pro
 - Static scheduling protocols: Scheduling decisions are made before requests are ordered for execution. 
 Thus, there is no request scheduling at the replicas.
 
-For a detailed discussion about the tradeoffs among the techniques for parallel execution, see the following paper:
+For a detailed discussion about the techniques for parallel execution and their tradeoffs, see the following paper:
 
 - **Eduardo Alchieri, Fernando Dotti, Parisa Marandi, Odorico Mendizabal and Fernando Pedone. Boosting State Machine Replication with Concurrent Execution. IEEE Latin-American Symposium on Dependable Computing, 2018.** (https://ieeexplore.ieee.org/document/8671580)
 

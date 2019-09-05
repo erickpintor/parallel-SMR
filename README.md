@@ -27,7 +27,7 @@ This library implements the late and early scheduling techniques, presented belo
 
 ### Late Scheduling
 
-Late scheduling is based on a Conflict-Ordered Set (COS) used to track conflicts. The current COS implementations are based on a dependency graph. There are several implementations of this graph that lead to different level of concurrency and performance. The late scheduling techniques implemented in this library were published in the following paper.
+Late scheduling is based on a Conflict-Ordered Set (COS) used to track conflicts. The current COS implementations are based on a dependency graph. There are several implementations of this graph that lead to different levels of concurrency and performance. The late scheduling techniques implemented in this library were published in the following paper.
 
 - **Ian Escobar, Fernando Dotti, Eduardo Alchieri and Fernando Pedone. Boosting concurrency in Parallel State Machine Replication. ACM/IFIP International Middleware Conference, 2019.** (http://2019.middleware-conference.org/)
 

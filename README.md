@@ -67,7 +67,7 @@ late scheduling? = true to use the late scheduling tecnique, false for early sch
 graph type = the graph synchronization strategy to be used. It can be coarseLock, fineLock and lockFree (see the paper for details)
 ```
 
-For example, you should use the following commands to execute three replicas (to tolerate upt to one crash failure) using the lock free graph, 10 threads and 10k entries in the list.
+For example, you should use the following commands to execute three replicas (to tolerate up to one crash failure) using the lock free graph, 10 threads and 10k entries in the list.
 
 ```
 ./p_bftsmartrun.sh demo.list.ListServer 0 10 10000 true lockFree

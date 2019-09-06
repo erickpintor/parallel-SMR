@@ -72,7 +72,7 @@ For example, you should use the following commands to execute three replicas (to
 ```
 ./p_bftsmartrun.sh demo.list.ListServer 0 10 10000 true lockFree
 ./p_bftsmartrun.sh demo.list.ListServer 1 10 10000 true lockFree
-./p_bftsmartrun.sh demo.list.ListServer 1 10 10000 true lockFree
+./p_bftsmartrun.sh demo.list.ListServer 2 10 10000 true lockFree
 
 ```
 

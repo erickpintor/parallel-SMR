@@ -244,7 +244,7 @@ public class AllInOneGraph{ // implements ConflictGraph {                   // D
 
     public AllInOneGraph(int limit, Parallelizer parallelizer, String st) {
 
-         this.parallelizer = parallelizer;
+        this.parallelizer = parallelizer;
         
         this.limit = limit;
         this.size = 0;
@@ -257,7 +257,7 @@ public class AllInOneGraph{ // implements ConflictGraph {                   // D
 
         head.setNext(tail);
 
-        if (st.equals("coarselock")) {
+        if (st.equals("coarseLock")) {
             this.syT = SyncType.coarseLock;
         } else if (st.equals("fineLock")) {
             this.syT = SyncType.fineLock;

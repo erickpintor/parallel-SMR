@@ -228,7 +228,12 @@ public class ThroughputStatistics {
             counters[threadId] = counters[threadId] + amount;
         }*/
         if(!stoped){
-            counters[threadId][now] = counters[threadId][now] + amount;
+            
+            try{
+                counters[threadId][now] = counters[threadId][now] + amount;
+            }catch(ArrayIndexOutOfBoundsException ignore){
+                
+            }
         }
 
     }

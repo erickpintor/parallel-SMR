@@ -58,7 +58,7 @@ It is necessary to execute the server replicas and the clients using the p_bftsm
 1) To execute a server replica, it is necessary to use the following command.
 
 ```
-./p_bftsmartrun.sh demo.list.ListServer <process id> <num threads> <initial entries> <late scheduling?> <graph type>
+./p_smartrun.sh demo.list.ListServer <process id> <num threads> <initial entries> <late scheduling?> <graph type>
 
 process id = the process identifier
 num threads = number of worker threads
@@ -70,9 +70,9 @@ graph type = the graph synchronization strategy to be used. It can be coarseLock
 For example, you should use the following commands to execute three replicas (to tolerate up to one crash failure) using the lock free graph, 10 threads and 10k entries in the list.
 
 ```
-./p_bftsmartrun.sh demo.list.ListServer 0 10 10000 true lockFree
-./p_bftsmartrun.sh demo.list.ListServer 1 10 10000 true lockFree
-./p_bftsmartrun.sh demo.list.ListServer 2 10 10000 true lockFree
+./p_smartrun.sh demo.list.ListServer 0 10 10000 true lockFree
+./p_smartrun.sh demo.list.ListServer 1 10 10000 true lockFree
+./p_smartrun.sh demo.list.ListServer 2 10 10000 true lockFree
 
 ```
 
@@ -80,7 +80,7 @@ For example, you should use the following commands to execute three replicas (to
 
 
 ```
-./p_bftsmartrun.sh demo.list.ListClientMO <num clients> <client id> <number of requests> <interval> <maxIndex> <parallel?> <operations per request> <conflict percent>
+./p_smartrun.sh demo.list.ListClientMO <num clients> <client id> <number of requests> <interval> <maxIndex> <parallel?> <operations per request> <conflict percent>
 
 num clients = number of threads clients to be created in the process, each thread represents one client
 client id = the client identifier
@@ -94,10 +94,10 @@ conflict percent = the percentage of write requests in the workload
 For example, you should use the following commands to execute 200 clients distributed in four machines/processes, using a workload with 10% of writes.
 
 ```
-./p_bftsmartrun.sh demo.list.ListClientMO 50 4001 100000 0 10000 true 50 10
-./p_bftsmartrun.sh demo.list.ListClientMO 50 5001 100000 0 10000 true 50 10
-./p_bftsmartrun.sh demo.list.ListClientMO 50 6001 100000 0 10000 true 50 10
-./p_bftsmartrun.sh demo.list.ListClientMO 50 7001 100000 0 10000 true 50 10
+./p_smartrun.sh demo.list.ListClientMO 50 4001 100000 0 10000 true 50 10
+./p_smartrun.sh demo.list.ListClientMO 50 5001 100000 0 10000 true 50 10
+./p_smartrun.sh demo.list.ListClientMO 50 6001 100000 0 10000 true 50 10
+./p_smartrun.sh demo.list.ListClientMO 50 7001 100000 0 10000 true 50 10
 
 ```
 

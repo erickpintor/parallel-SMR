@@ -47,7 +47,7 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
     @Override
     protected void initWorkers(int n, int id) {
 
-        statistics = new ThroughputStatistics(n, "results_" + id + ".txt", "");
+        statistics = new ThroughputStatistics(id, n, "results_" + id + ".txt", "");
 
         int tid = 0;
         for (int i = 0; i < n; i++) {

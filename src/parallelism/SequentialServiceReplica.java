@@ -55,7 +55,7 @@ public class SequentialServiceReplica extends ServiceReplica {
     public SequentialServiceReplica(int id, Executable executor, Recoverable recoverer) {
         //this(id, executor, recoverer, new DefaultScheduler(initialWorkers));
         super(id, executor, recoverer);
-        statistics = new ThroughputStatistics(1, "results_" + id + ".txt", "");
+        statistics = new ThroughputStatistics(id, 1, "results_" + id + ".txt", "");
 
     }
 

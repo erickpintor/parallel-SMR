@@ -6,9 +6,13 @@
 package bftsmart.util;
 
 import bftsmart.tom.MessageContext;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.LinkedList;
+import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import parallelism.FIFOQueue;
@@ -32,10 +36,12 @@ public class ThroughputStatistics {
     private String print;
 
     private int numT = 0;
+    private int id;
 
     //private Timer timer = new Timer();
-    public ThroughputStatistics(int numThreads, String filePath, String print) {
+    public ThroughputStatistics(int id, int numThreads, String filePath, String print) {
         this.print = print;
+        this.id = id;
         numT = numThreads;
         counters = new int[numThreads][interval + 1];
         //restart = new boolean[numThreads];
@@ -71,7 +77,84 @@ public class ThroughputStatistics {
             pw.println(time + " " + tp);
         }
         pw.flush();
+        if(id == 0){
+            loadTP("results_0.txt");
+        }
 
+    }
+    
+    private void loadTP(String path) {
+        //System.out.println("Vai ler!!!");
+        try {
+
+            FileReader fr = new FileReader(path);
+
+            BufferedReader rd = new BufferedReader(fr);
+            String line = null;
+            int j = 0;
+            LinkedList<Double> l = new LinkedList<Double>();
+            int nextSec = 0;
+            while (((line = rd.readLine()) != null)) {
+                StringTokenizer st = new StringTokenizer(line, " ");
+                try {
+                    int i = Integer.parseInt(st.nextToken());
+                    if (i <= 120) {
+                        
+                        String t = st.nextToken();
+                        //System.out.println(t);
+
+                        double d = Double.parseDouble(t);
+                        
+                        if ( i > nextSec){
+                            
+                            //System.out.println("entrou para i = "+i+" e next sec = "+nextSec);
+                            for(int z = nextSec; z < i; z++){
+                                l.add(d);
+                               
+                            }
+                             nextSec = i;
+                             
+                             //System.out.println("saiu com i = "+i+" e next sec = "+nextSec);
+                        }else{
+                            //System.out.println("nao entrou i = "+i+" e next sec = "+nextSec);
+                        }
+                        
+                        if( i == nextSec){
+                            l.add(d);
+                            nextSec++;
+                        }
+                        //System.out.println("adicionou "+nextSec);
+                    }
+                } catch (Exception e) {
+                    //e.printStackTrace();
+                }
+
+            }
+            fr.close();
+            rd.close();
+
+            //System.out.println("Size: " + l.size());
+
+            double sum = 0;
+            int i;
+            for (i = 0; i < l.size(); i++) {
+                sum = sum + l.get(i);
+            }
+
+            /* double md1 = sum/250;
+            sum = 0;
+            for(i = 251; i < l.size(); i++){
+                sum = sum + l.get(i);
+            }
+            double md2 = sum/(l.size()-250);
+            
+            
+            System.out.println("Media: "+((md1+md2)/2));*/
+            //System.out.println("Sum: " + sum);
+            System.out.println("Throughput: " + (sum / l.size()));
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
+        }
     }
 
     public void printTP(long timeMillis) {

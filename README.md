@@ -104,7 +104,7 @@ For example, you should use the following commands to execute 200 clients distri
 Notice you can try different parameters and exercise different configurations for both replicas and clients.
 
 
-**Important tip** BFT-SMaRt uses two configuration files (see the ```config``` folder) to define the protocol behavior (```config/system.config```) and the location of each replica (```config/hosts.config```). After some modification in these files, you need to delete the file ```config/currentView```. See the BFT-SMaRt page for a detailed explanation about system configuration (https://github.com/bft-smart/library).
+**Important tip.** BFT-SMaRt uses two configuration files (see the ```config``` folder) to define the protocol behavior (```config/system.config```) and the location of each replica (```config/hosts.config```). After some modification in these files, you need to delete the file ```config/currentView```. See the BFT-SMaRt page for a detailed explanation about system configuration (https://github.com/bft-smart/library).
 
 
 

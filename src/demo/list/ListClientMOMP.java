@@ -21,10 +21,6 @@ import java.io.IOException;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-//import bftsmart.tom.ServiceProxy;
-//import bftsmart.tom.core.messages.TOMMessageType;
-import bftsmart.tom.util.Storage;
 import bftsmart.util.ExtStorage;
 import java.util.Random;
 import java.util.Timer;
@@ -37,9 +33,6 @@ import java.util.TimerTask;
 public class ListClientMOMP {
 
     public static int initId = 0;
-
-    public static int op = BFTList.ADD;
-    public static boolean mix = true;
 
     public static boolean weight = false;
 
@@ -59,7 +52,6 @@ public class ListClientMOMP {
 
             op = BFTList.ADD;
         }*/
-
         int numberOfReqs = Integer.parseInt(args[2]);
         //int requestSize = Integer.parseInt(args[3]);
         int interval = Integer.parseInt(args[3]);
@@ -122,14 +114,6 @@ public class ListClientMOMP {
         stop = true;
     }
 
-    public static void change() {
-        if (op == BFTList.CONTAINS) {
-            op = BFTList.ADD;
-        } else {
-            op = BFTList.CONTAINS;
-        }
-    }
-
     static class Client extends Thread {
 
         int id;
@@ -137,6 +121,8 @@ public class ListClientMOMP {
         int interval;
 
         int countNumOp = 0;
+
+        public static int op = BFTList.ADD;
 
         //boolean verbose;
         //boolean dos;
@@ -185,8 +171,7 @@ public class ListClientMOMP {
 
             } else {
                 int p = 0;
-                
-                
+
                 ExtStorage sR = new ExtStorage();
                 ExtStorage sW = new ExtStorage();
                 ExtStorage sGR = new ExtStorage();
@@ -212,33 +197,29 @@ public class ListClientMOMP {
                             Logger.getLogger(ListClientMOMP.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
-                   
-                    if (mix) {
-                        int g = randGlobal.nextInt(100);
-                        int r = randOp.nextInt(100);
-                        if (g < 5) {//global: 5%
-                            //p = -2;
-                            if (r < 15) {
-                                //GW
-                                p = -1;
-                            } else {
-                                //GR;
-                                p = -2;
-                            }
-                        } else{//local
-                            //op = BFTList.CONTAINS;
-                            if (r < 15) {
 
-                                op = BFTList.ADD;
-                            } else {
-                                op = BFTList.CONTAINS;
-                            }
+                    int g = randGlobal.nextInt(100);
+                    int r = randOp.nextInt(100);
+                    if (g < 5) {//global: 5%
+                        //p = -2;
+                        if (r < 15) {
+                            //GW
+                            p = -1;
+                        } else {
+                            //GR;
+                            p = -2;
+                        }
+                    } else{//local
+                        if (r < 15) {
+                            op = BFTList.ADD;
+                        } else {
+                            op = BFTList.CONTAINS;
                         }
                     }
 
                     if (p == 0) {
                         if (this.partitions == 2) {//2 partitions
-                            int r = rand.nextInt(100);
+                            r = rand.nextInt(100);
                             if (r < 50) {
                                 p = 1;
                             } else {
@@ -258,7 +239,7 @@ public class ListClientMOMP {
                                 }
                             }*/
                         } else if (this.partitions == 4) {//4 partitions
-                            int r = rand.nextInt(100);
+                            r = rand.nextInt(100);
                             if (r < 25) {
                                 p = 1;
                             } else if (r < 50) {
@@ -269,7 +250,7 @@ public class ListClientMOMP {
                                 p = 4;
                             }
                         } else if (this.partitions == 6) {//6 partitions
-                            int r = rand.nextInt(60);
+                            r = rand.nextInt(60);
                             if (r < 10) {
                                 p = 1;
                             } else if (r < 20) {
@@ -284,7 +265,7 @@ public class ListClientMOMP {
                                 p = 6;
                             }
                         } else {//8 partitions
-                            int r = rand.nextInt(80);
+                            r = rand.nextInt(80);
                             if (r < 10) {
                                 p = 1;
                             } else if (r < 20) {
@@ -449,14 +430,13 @@ public class ListClientMOMP {
 
             System.out.println("Executing experiment for " + numberOfReqs + " ops");
 
-             Random rand = new Random();
+            Random rand = new Random();
 
-                Random randOp = new Random();
+            Random randOp = new Random();
 
-                Random randGlobal = new Random();
+            Random randGlobal = new Random();
 
-                Random indexRand = new Random();
-
+            Random indexRand = new Random();
 
 //            WorkloadGenerator work = new WorkloadGenerator(numberOfOps);
             for (int i = 0; i < numberOfReqs && !stop; i++) {
@@ -473,10 +453,10 @@ public class ListClientMOMP {
                 ExtStorage st = null;
 
                 int p = 0;
-                if (mix) {
-                    int g = randGlobal.nextInt(100);
-                    int r = randOp.nextInt(100);
-                    if (g < 5) {//global: 5%
+                
+                int g = randGlobal.nextInt(100);
+                int r = randOp.nextInt(100);
+                if (g < 5) {//global: 5%
                         //p = -2;
                         if (r < 15) {
                             //GW
@@ -485,19 +465,19 @@ public class ListClientMOMP {
                             //GR;
                             p = -2;
                         }
-                    } else{//local
-                        if (r < 15) {
+                } else{//local
+                    if (r < 15) {
 
-                            op = BFTList.ADD;
-                        } else {
-                            op = BFTList.CONTAINS;
-                        }
+                        op = BFTList.ADD;
+                    } else {
+                        op = BFTList.CONTAINS;
                     }
                 }
+                
 
                 if (p == 0) {
                     if (this.partitions == 2) {//2 partitions
-                        int r = rand.nextInt(100);
+                        r = rand.nextInt(100);
                         if (r < 67) {
                             //if (r < 50) {//weighs: 67 for more in P1
                             p = 1;
@@ -520,10 +500,8 @@ public class ListClientMOMP {
                     } else {
                         System.exit(0);
                     }
-                    
-                }
 
-                
+                }
 
                 if (p == -1) { //GW
                     //int index = maxIndex - 1;
@@ -548,7 +526,6 @@ public class ListClientMOMP {
 
                     //int index = rand.nextInt(maxIndex);
                     //int index = maxIndex - 1;
-
                     Integer[] reqs = new Integer[opPerReq];
                     for (int x = 0; x < reqs.length; x++) {
                         reqs[x] = indexRand.nextInt(maxIndex);
@@ -568,7 +545,6 @@ public class ListClientMOMP {
 
                     //int index = rand.nextInt(maxIndex);
                     //int index = maxIndex - 1;
-
                     Integer[] reqs = new Integer[opPerReq];
                     for (int x = 0; x < reqs.length; x++) {
                         reqs[x] = indexRand.nextInt(maxIndex);
@@ -579,7 +555,7 @@ public class ListClientMOMP {
                         store.containsP1(reqs);
                     } else if (p == 2) {
                         store.containsP2(reqs);
-                    } else{
+                    } else {
                         System.exit(0);
                     }
 
@@ -596,7 +572,7 @@ public class ListClientMOMP {
             }
 
             if (id == initId) {
-                if (mix) {
+                
 
                     System.out.println(this.id + " //P1 Average time for " + numberOfReqs + " executions (-10%) = " + sP1.getAverage(true) / 1000 + " us ");
                     System.out.println(this.id + " //P1 Standard desviation for " + numberOfReqs + " executions (-10%) = " + sP1.getDP(true) / 1000 + " us ");
@@ -604,19 +580,18 @@ public class ListClientMOMP {
 
                     System.out.println(this.id + " //P2 Average time for " + numberOfReqs + " executions (-10%) = " + sP2.getAverage(true) / 1000 + " us ");
                     System.out.println(this.id + " //P2 Standard desviation for " + numberOfReqs + " executions (-10%) = " + sP2.getDP(true) / 1000 + " us ");
-System.out.println(this.id + " //P2 95th for " + numberOfReqs + " executions (-10%) = " + sP2.getPercentile(95) / 1000 + " us ");
+                    System.out.println(this.id + " //P2 95th for " + numberOfReqs + " executions (-10%) = " + sP2.getPercentile(95) / 1000 + " us ");
 
-                    
                     System.out.println(this.id + " //GR Average time for " + numberOfReqs + " executions (-10%) = " + sGR.getAverage(true) / 1000 + " us ");
                     System.out.println(this.id + " //GR Standard desviation for " + numberOfReqs + " executions (-10%) = " + sGR.getDP(true) / 1000 + " us ");
-System.out.println(this.id + " //GR 95th for " + numberOfReqs + " executions (-10%) = " + sGR.getPercentile(95) / 1000 + " us ");
+                    System.out.println(this.id + " //GR 95th for " + numberOfReqs + " executions (-10%) = " + sGR.getPercentile(95) / 1000 + " us ");
 
-                    
                     System.out.println(this.id + " //GW Average time for " + numberOfReqs + " executions (-10%) = " + sGW.getAverage(true) / 1000 + " us ");
                     System.out.println(this.id + " //GW Standard desviation for " + numberOfReqs + " executions (-10%) = " + sGW.getDP(true) / 1000 + " us ");
-                System.out.println(this.id + " //GW 95th for " + numberOfReqs + " executions (-10%) = " + sGW.getPercentile(95) / 1000 + " us ");
+                    System.out.println(this.id + " //GW 95th for " + numberOfReqs + " executions (-10%) = " + sGW.getPercentile(95) / 1000 + " us ");
 
-                } /*else if (op == BFTList.ADD) {
+                
+                /*else if (op == BFTList.ADD) {
                     System.out.println(this.id + " //WRITE W1 Average time for " + numberOfReqs + " executions (-10%) = " + sW1.getAverage(true) / 1000 + " us ");
                     System.out.println(this.id + " //WRITE W1 Standard desviation for " + numberOfReqs + " executions (-10%) = " + sW1.getDP(true) / 1000 + " us ");
 

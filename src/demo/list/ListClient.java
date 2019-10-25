@@ -35,7 +35,7 @@ import java.util.TimerTask;
  */
 public class ListClient {
 
-    private static int VALUE_SIZE = 1024;
+    //private static int VALUE_SIZE = 1024;
     public static int initId = 0;
 
     public static int op = BFTList.CONTAINS;
@@ -44,7 +44,7 @@ public class ListClient {
     @SuppressWarnings("static-access")
     public static void main(String[] args) throws IOException {
         if (args.length < 7) {
-            System.out.println("Usage: ... ListClient <num. threads> <process id> <number of operations> <interval> <maxIndex> <verbose?> <parallel?> <async?>");
+            System.out.println("Usage: ... ListClient <num. threads> <process id> <number of operations> <interval> <maxIndex> <verbose?> <parallel?>");
             System.exit(-1);
         }
 
@@ -57,7 +57,7 @@ public class ListClient {
         int max = Integer.parseInt(args[4]);
         boolean verbose = Boolean.parseBoolean(args[5]);
         boolean parallel = Boolean.parseBoolean(args[6]);
-        boolean async = Boolean.parseBoolean(args[7]);
+
 
         Client[] c = new Client[numThreads];
 
@@ -69,7 +69,7 @@ public class ListClient {
             }
 
             System.out.println("Launching client " + (initId + i));
-            c[i] = new ListClient.Client(initId + i, numberOfOps, interval, max, verbose, parallel, async);
+            c[i] = new ListClient.Client(initId + i, numberOfOps, interval, max, verbose, parallel);
             //c[i].start();
         }
 
@@ -137,7 +137,7 @@ public class ListClient {
         int maxIndex;
        // int percent;
 
-        public Client(int id, int numberOfOps, int interval, int maxIndex, boolean verbose, boolean parallel, boolean async) {
+        public Client(int id, int numberOfOps, int interval, int maxIndex, boolean verbose, boolean parallel) {
             super("Client " + id);
 
             this.id = id;
@@ -151,7 +151,7 @@ public class ListClient {
             //this.request = new byte[this.requestSize];
             this.maxIndex = maxIndex;
 
-            store = new BFTList<Integer>(id, parallel, async);
+            store = new BFTList<Integer>(id, parallel);
             //this.dos = dos;
         }
 

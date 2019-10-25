@@ -3,8 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package parallelism.late.graph.concurrentGraph;
+package parallelism.late;
 
-public enum SyncType {
-	coarseLock, fineLock, hohGetWaitFree, hohHelpedRemove, helpedRemoveGetWaitFree, lockFree
+
+public enum COSType {
+	coarseLockGraph, fineLockGraph, lockFreeGraph
 }
+
+/*public enum COSType {
+	coarseLock, fineLock, hohGetWaitFree, hohHelpedRemove, helpedRemoveGetWaitFree, lockFree
+}*/

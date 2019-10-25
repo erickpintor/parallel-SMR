@@ -10,17 +10,12 @@ import bftsmart.tom.server.Executable;
 import bftsmart.tom.server.Recoverable;
 import bftsmart.tom.server.SingleExecutable;
 import bftsmart.util.ThroughputStatistics;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import parallelism.late.graph.Request;
-import parallelism.late.graph.concurrentGraph.AllInOneGraph;
 import parallelism.MessageContextPair;
 import parallelism.MultiOperationCtx;
 import parallelism.ParallelMapping;
 import parallelism.ParallelServiceReplica;
+import parallelism.late.graph.DependencyGraph;
 
 /**
  *
@@ -30,7 +25,7 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
 
     private CyclicBarrier recBarrier = new CyclicBarrier(2);
 
-    public CBASEServiceReplica(int id, Executable executor, Recoverable recoverer, int numWorkers, ConflictDefinition cf, String graphType) {
+    public CBASEServiceReplica(int id, Executable executor, Recoverable recoverer, int numWorkers, ConflictDefinition cf, COSType graphType) {
         super(id, executor, recoverer, new CBASEScheduler(cf, numWorkers, graphType));
 
     }
@@ -67,15 +62,19 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
 
             //System.out.println("Criou um thread: " + id);
         }
+        //int exec = 0;
 
         public void run() {
             //System.out.println("rum: " + thread_id);
-            Request msg = null;
+            MessageContextPair msg = null;
             while (true) {
-                Object node = s.nextRequest();
+                // System.out.println("vai pegar...");
+                Object node = s.get();
+                //System.out.println("Pegou req...");
                 
-                msg = ((AllInOneGraph.vNode) node).getAsRequest();
-                if (msg.getRequest().classId == ParallelMapping.CONFLICT_RECONFIGURATION) {
+                msg = ((DependencyGraph.vNode) node).getAsRequest();
+                //System.out.println("Pegou req..."+ msg.toString());
+                if (msg.classId == ParallelMapping.CONFLICT_RECONFIGURATION) {
                     try {
                         getReconfBarrier().await();
                         getReconfBarrier().await();
@@ -83,9 +82,13 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                         ex.printStackTrace();
                     }
                 } else {
-                    msg.getRequest().resp = ((SingleExecutable) executor).executeOrdered(msg.getRequest().operation, null);
-                    MultiOperationCtx ctx = ctxs.get(msg.getRequest().request.toString());
-                    ctx.add(msg.getRequest().index, msg.getRequest().resp);
+                    msg.resp = ((SingleExecutable) executor).executeOrdered(msg.operation, null);
+                    //exec++;
+                    
+                    //System.out.println(thread_id+" Executadas: "+exec);
+                    
+                    MultiOperationCtx ctx = ctxs.get(msg.request.toString());
+                    ctx.add(msg.index, msg.resp);
                     if (ctx.response.isComplete() && !ctx.finished && (ctx.interger.getAndIncrement() == 0)) {
                         ctx.finished = true;
                         ctx.request.reply = new TOMMessage(id, ctx.request.getSession(),
@@ -98,7 +101,7 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                 }
                 
                 //s.removeRequest(msg);
-                s.removeRequest(node);
+                s.remove(node);
             }
         }
 

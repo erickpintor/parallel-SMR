@@ -5,26 +5,11 @@
  */
 package demo.list;
 
-import bftsmart.tom.ParallelAsynchServiceProxy;
-import bftsmart.tom.ParallelServiceProxy;
-import bftsmart.tom.ServiceProxy;
-import bftsmart.tom.core.messages.TOMMessageType;
 import bftsmart.util.MultiOperationRequest;
-import bftsmart.util.MultiOperationResponse;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import parallelism.ParallelMapping;
 
 /**
  *
@@ -35,7 +20,7 @@ public class BFTListMOMP<V> extends BFTList<V> {
     
     
     public BFTListMOMP(int id, boolean parallelExecution) {
-        super(id, parallelExecution, false);
+        super(id, parallelExecution);
     }
 
     public boolean addP1(V[] e) {

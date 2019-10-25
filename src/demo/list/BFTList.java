@@ -5,12 +5,7 @@
  */
 package demo.list;
 
-
-
-import bftsmart.tom.ParallelAsynchServiceProxy;
 import bftsmart.tom.ParallelServiceProxy;
-import bftsmart.tom.ServiceProxy;
-import bftsmart.tom.core.messages.TOMMessageType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -31,7 +26,7 @@ import parallelism.ParallelMapping;
  * @author alchieri
  */
 public class BFTList<V> implements List<V> {
-    
+
     static final int CONTAINS = 1;
     static final int ADD = 2;
     static final int GET = 3;
@@ -43,20 +38,9 @@ public class BFTList<V> implements List<V> {
 
     protected boolean parallel = false;
 
-    protected boolean async = false;
-    
-    protected ParallelAsynchServiceProxy asyncProxy = null;
-    
-    
-    public BFTList(int id, boolean parallelExecution, boolean async) {
-       
+    public BFTList(int id, boolean parallelExecution) {
         this.parallel = parallelExecution;
-        this.async = async;
-        if(async){
-            asyncProxy = new ParallelAsynchServiceProxy(id);
-        }else{
-             proxy = new ParallelServiceProxy(id);     
-        }
+        proxy = new ParallelServiceProxy(id);
     }
 
     @Override
@@ -65,22 +49,11 @@ public class BFTList<V> implements List<V> {
             out = new ByteArrayOutputStream();
             new DataOutputStream(out).writeInt(SIZE);
             byte[] rep;
-            
-            
-            
             if (parallel) {
-                if(async){
-                    int id = asyncProxy.invokeParallelAsynchRequest(out.toByteArray(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.CONC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);
-                    
-                    return -1;
-                }else{
-                    rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.CONC_ALL);
-                }
+                rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.CONC_ALL);
             } else {
                 rep = proxy.invokeOrdered(out.toByteArray());
             }
-
             ByteArrayInputStream in = new ByteArrayInputStream(rep);
             int size = new DataInputStream(in).readInt();
             return size;
@@ -102,13 +75,8 @@ public class BFTList<V> implements List<V> {
             out1.close();
             byte[] rep = null;
             if (parallel) {
-                if(async){
-                    int id = asyncProxy.invokeParallelAsynchRequest(out.toByteArray(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.SYNC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);
-                    return true;
-                }else{
-                    rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.SYNC_ALL);
-                }
+                rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.SYNC_ALL);
+
             } else {
                 rep = proxy.invokeOrdered(out.toByteArray());
             }
@@ -137,13 +105,8 @@ public class BFTList<V> implements List<V> {
             out1.close();
             byte[] rep = null;
             if (parallel) {
-                if(async){
-                    int id = asyncProxy.invokeParallelAsynchRequest(out.toByteArray(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.CONC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);
-                    return true;
-                }else{
-                    rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.CONC_ALL);
-                }
+                rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.CONC_ALL);
+
             } else {
                 rep = proxy.invokeOrdered(out.toByteArray());
             }
@@ -171,13 +134,8 @@ public class BFTList<V> implements List<V> {
             out1.close();
             byte[] rep = null;
             if (parallel) {
-                if(async){
-                    int id = asyncProxy.invokeParallelAsynchRequest(out.toByteArray(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.SYNC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);   
-                    return true;
-                }else{
-                    rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.SYNC_ALL);
-                }
+                rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.SYNC_ALL);
+
             } else {
                 rep = proxy.invokeOrdered(out.toByteArray());
             }
@@ -202,20 +160,15 @@ public class BFTList<V> implements List<V> {
 
             byte[] rep = null;
             if (parallel) {
-                if(async){
-                    int id = asyncProxy.invokeParallelAsynchRequest(out.toByteArray(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.CONC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);
-                    return null;
-                }else{
-                    rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.CONC_ALL);
-                }
+                rep = proxy.invokeParallel(out.toByteArray(), ParallelMapping.CONC_ALL);
+
             } else {
                 rep = proxy.invokeOrdered(out.toByteArray());
             }
-            if(rep == null){
+            if (rep == null) {
                 return null;
             }
-            
+
             ByteArrayInputStream bis = new ByteArrayInputStream(rep);
             ObjectInputStream in = new ObjectInputStream(bis);
             V resp = (V) in.readObject();
@@ -230,94 +183,93 @@ public class BFTList<V> implements List<V> {
         }
     }
 
-
-@Override
-        public boolean isEmpty() {
+    @Override
+    public boolean isEmpty() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public Iterator<V> iterator() {
+    public Iterator<V> iterator() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public Object[] toArray() {
+    public Object[] toArray() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public <T> T[] toArray(T[] a) {
+    public <T> T[] toArray(T[] a) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public boolean containsAll(Collection<?> c) {
+    public boolean containsAll(Collection<?> c) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public boolean addAll(Collection<? extends V> c) {
+    public boolean addAll(Collection<? extends V> c) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public boolean addAll(int index, Collection<? extends V> c) {
+    public boolean addAll(int index, Collection<? extends V> c) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public boolean removeAll(Collection<?> c) {
+    public boolean removeAll(Collection<?> c) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public boolean retainAll(Collection<?> c) {
+    public boolean retainAll(Collection<?> c) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public void clear() {
+    public void clear() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public V set(int index, V element) {
+    public V set(int index, V element) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public void add(int index, V element) {
+    public void add(int index, V element) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public V remove(int index) {
+    public V remove(int index) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public int indexOf(Object o) {
+    public int indexOf(Object o) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public int lastIndexOf(Object o) {
+    public int lastIndexOf(Object o) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public ListIterator<V> listIterator() {
+    public ListIterator<V> listIterator() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public ListIterator<V> listIterator(int index) {
+    public ListIterator<V> listIterator(int index) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-        public List<V> subList(int fromIndex, int toIndex) {
+    public List<V> subList(int fromIndex, int toIndex) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

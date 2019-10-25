@@ -50,6 +50,7 @@ import parallelism.ParallelMapping;
 import parallelism.ParallelServiceReplica;
 import parallelism.ParallelServiceReplica;
 import parallelism.SequentialServiceReplica;
+import parallelism.late.COSType;
 
 
 public final class ListServerMP implements SingleExecutable {
@@ -215,7 +216,7 @@ public final class ListServerMP implements SingleExecutable {
                     return false;
                 }
             };
-            replica = new CBASEServiceReplica(id, this, null, initThreads, cd, "hoh");
+            replica = new CBASEServiceReplica(id, this, null, initThreads, cd, COSType.coarseLockGraph);
         } else {
             System.out.println("Replica in parallel execution model.");
 

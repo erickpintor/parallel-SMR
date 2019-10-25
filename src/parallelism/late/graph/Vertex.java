@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package parallelism.late.graph.concurrentGraph;
+package parallelism.late.graph;
 
 public enum Vertex {
     MESSAGE, HEAD, TAIL

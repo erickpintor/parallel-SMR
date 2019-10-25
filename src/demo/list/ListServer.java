@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.util.Iterator;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -50,6 +51,7 @@ import parallelism.ParallelMapping;
 import parallelism.ParallelServiceReplica;
 import parallelism.ParallelServiceReplica;
 import parallelism.SequentialServiceReplica;
+import parallelism.late.COSType;
 
 
 public final class ListServer implements SingleExecutable {
@@ -78,9 +80,17 @@ public final class ListServer implements SingleExecutable {
                 }
             };
             
-            new CBASEServiceReplica(id, this, null, initThreads, cd, gType );
+            if(gType.equals("coarseLock")){
+                new CBASEServiceReplica(id, this, null, initThreads, cd, COSType.coarseLockGraph);
+            }else if (gType.equals("fineLock")){
+                new CBASEServiceReplica(id, this, null, initThreads, cd, COSType.fineLockGraph);
+            }else if (gType.equals("lockFree")){
+                new CBASEServiceReplica(id, this, null, initThreads, cd, COSType.lockFreeGraph);
+            }else{
+                new CBASEServiceReplica(id, this, null, initThreads, cd, null);
+            }
         } else {
-            System.out.println("Replica in parallel execution model.");
+            System.out.println("Replica in parallel execution model (early scheduling).");
 
             new ParallelServiceReplica(id, this, null, initThreads);
             //replica = new ParallelServiceReplica(id, this, null, minThreads, initThreads, maxThreads, new LazyPolicy());
@@ -117,6 +127,9 @@ public final class ListServer implements SingleExecutable {
                     if (!l.contains(value)) {
                         ret = l.add(value);
                     }
+                    
+                    //Thread.sleep(2000);
+                    
                     out = new ByteArrayOutputStream();
                     ObjectOutputStream out1 = new ObjectOutputStream(out);
                     out1.writeBoolean(ret);
@@ -144,6 +157,16 @@ public final class ListServer implements SingleExecutable {
                     out = new ByteArrayOutputStream();
                     out1 = new ObjectOutputStream(out);
                     out1.writeBoolean(l.contains(value));
+                    
+                    /*out1.writeBoolean(true);
+                    
+                    Iterator<Integer> it = l.iterator();
+                    
+                    while(it.hasNext()){
+                        it.next();
+                    }*/
+                    
+                    
                     out.flush();
                     out1.flush();
                     reply = out.toByteArray();

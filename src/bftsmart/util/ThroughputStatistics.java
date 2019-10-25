@@ -5,7 +5,7 @@
  */
 package bftsmart.util;
 
-import bftsmart.tom.MessageContext;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -15,8 +15,7 @@ import java.util.LinkedList;
 import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
-import parallelism.FIFOQueue;
-import parallelism.ParallelServiceReplica;
+
 
 /**
  *
@@ -77,14 +76,11 @@ public class ThroughputStatistics {
             pw.println(time + " " + tp);
         }
         pw.flush();
-        if(id == 0){
-            loadTP("results_0.txt");
-        }
+        loadTP("results_"+id+".txt");
 
     }
     
     private void loadTP(String path) {
-        //System.out.println("Vai ler!!!");
         try {
 
             FileReader fr = new FileReader(path);
@@ -172,8 +168,6 @@ public class ThroughputStatistics {
         float tp = (float) (total * 1000 / (float) timeMillis);
 
         System.out.println("Throughput at " + print + " = " + tp + " operations/sec in sec : " + now);
-        //System.out.println("valor de c: "+FIFOQueue.c);
-
     }
 
     boolean stoped = true;

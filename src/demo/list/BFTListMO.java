@@ -5,25 +5,12 @@
  */
 package demo.list;
 
-import bftsmart.tom.ParallelAsynchServiceProxy;
-import bftsmart.tom.ParallelServiceProxy;
-import bftsmart.tom.ServiceProxy;
-import bftsmart.tom.core.messages.TOMMessageType;
+
 import bftsmart.util.MultiOperationRequest;
-import bftsmart.util.MultiOperationResponse;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import parallelism.ParallelMapping;
 
 /**
@@ -32,8 +19,8 @@ import parallelism.ParallelMapping;
  */
 public class BFTListMO<V> extends BFTList<V> {
 
-    public BFTListMO(int id, boolean parallelExecution, boolean async) {
-        super(id, parallelExecution, async);
+    public BFTListMO(int id, boolean parallelExecution) {
+        super(id, parallelExecution);
     }
 
     public boolean add(V[] e) {
@@ -54,13 +41,7 @@ public class BFTListMO<V> extends BFTList<V> {
             }
             byte[] rep = null;
             if (parallel) {
-                if (async) {
-                    int id = asyncProxy.invokeParallelAsynchRequest(mo.serialize(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.SYNC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);
-                    return true;
-                } else {
                     rep = proxy.invokeParallel(mo.serialize(), ParallelMapping.SYNC_ALL);
-                }
             } else {
                 rep = proxy.invokeOrdered(mo.serialize());
             }
@@ -107,12 +88,7 @@ public class BFTListMO<V> extends BFTList<V> {
             }
             //byte[] rep = null;
             if (parallel) {
-                if (async) {
-                    int id = asyncProxy.invokeParallelAsynchRequest(mo.serialize(), null, TOMMessageType.ORDERED_REQUEST, ParallelMapping.CONC_ALL);
-                    asyncProxy.cleanAsynchRequest(id);
-                } else {
                     proxy.invokeParallel(mo.serialize(), ParallelMapping.CONC_ALL);
-                }
             } else {
                 proxy.invokeOrdered(mo.serialize());
             }

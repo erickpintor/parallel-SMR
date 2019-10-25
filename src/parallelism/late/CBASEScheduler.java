@@ -5,12 +5,12 @@
  */
 package parallelism.late;
 
-import bftsmart.tom.core.messages.TOMMessage;
-import bftsmart.tom.core.messages.TOMMessageType;
-import parallelism.late.graph.Parallelizer;
-import parallelism.late.graph.Request;
+import parallelism.late.graph.COS;
 import parallelism.MessageContextPair;
 import parallelism.ParallelMapping;
+import parallelism.late.graph.CoarseGrainedLock;
+import parallelism.late.graph.FineGrainedLock;
+import parallelism.late.graph.LockFreeGraph;
 import parallelism.scheduler.Scheduler;
 
 /**
@@ -19,25 +19,47 @@ import parallelism.scheduler.Scheduler;
  */
 public class CBASEScheduler implements Scheduler{
 
-    private Parallelizer parallelizer;
-    
+    private COS cos;
     private int numWorkers;
     
-    //private ThroughputStatistics statistics;
+     private ConflictDefinition conflictDef;
     
-    public CBASEScheduler(int numWorkers, String graphType) {
-        this(null, numWorkers, graphType);
+    public CBASEScheduler(int numWorkers, COSType cosType) {
+        this(null, numWorkers, cosType);
     }
 
-    public CBASEScheduler(ConflictDefinition cd, int numWorkers, String graphType) {
-        
-        parallelizer = new Parallelizer(150,graphType, cd);
+    public CBASEScheduler(ConflictDefinition cd, int numWorkers, COSType cosType) {
+        //cos = new COS(150,graphType,this);
+        int limit = 150;
+        if(cosType == null || cosType == COSType.coarseLockGraph){
+            this.cos = new CoarseGrainedLock(limit, this);
+        }else if(cosType == COSType.fineLockGraph){
+            this.cos = new FineGrainedLock(limit, this);
+        }else if (cosType == COSType.lockFreeGraph){
+            this.cos = new LockFreeGraph(limit, this);
+        }else{
+           this.cos = new CoarseGrainedLock(limit, this);
+        }
         this.numWorkers = numWorkers;
+        if(cd == null){
+            this.conflictDef = new DefaultConflictDefinition();
+        }else{
+            this.conflictDef = cd;
+        }
         
-        // statistics = new ThroughputStatistics(1, "results_scheduler_"+id+".txt","SCHEDULER");
     }
 
     
+    public boolean isDependent(MessageContextPair thisRequest, MessageContextPair otherRequest){
+        if(thisRequest.classId == ParallelMapping.CONFLICT_RECONFIGURATION || 
+                otherRequest.classId == ParallelMapping.CONFLICT_RECONFIGURATION){
+            return true;
+        }
+        return this.conflictDef.isDependent(thisRequest, otherRequest);
+    }
+    
+    
+    @Override
     public int getNumWorkers() {
         return this.numWorkers;
     }
@@ -45,31 +67,27 @@ public class CBASEScheduler implements Scheduler{
     
     @Override
     public void schedule(MessageContextPair request) {
-        
-        //statistics.start();
-        //statistics.computeStatistics(0, 1);
-        
         try {
-            parallelizer.insert(request);
+            cos.insert(request);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
         
     }
 
-    public Object nextRequest(){
+    public Object get(){
         
         try {
-            return parallelizer.nextRequest();
+            return cos.get();
         } catch (InterruptedException ex) {
             ex.printStackTrace();
             return null;
         }
     }
     
-    public void removeRequest(Object requestRequest){
+    public void remove(Object requestRequest){
         try {
-            parallelizer.remove(requestRequest);
+            cos.remove(requestRequest);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
@@ -77,13 +95,8 @@ public class CBASEScheduler implements Scheduler{
     
     @Override
     public void scheduleReplicaReconfiguration() {
-        
-        TOMMessage reconf = new TOMMessage(0, 0, 0,0, null, 0, TOMMessageType.ORDERED_REQUEST, ParallelMapping.CONFLICT_RECONFIGURATION);
-        MessageContextPair m = new MessageContextPair(reconf, ParallelMapping.CONFLICT_RECONFIGURATION, -1, null);
-        
+        MessageContextPair m = new MessageContextPair(null, ParallelMapping.CONFLICT_RECONFIGURATION, -1, null);
         schedule(m);
-        
-        
     }
 
     @Override

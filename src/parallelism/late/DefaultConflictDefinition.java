@@ -8,19 +8,11 @@ package parallelism.late;
 import parallelism.MessageContextPair;
 
 /**
- *
  * @author eduardo
  */
-public class DefaultConflictDefinition extends ConflictDefinition{
-
-    public DefaultConflictDefinition() {
-    }
-
+public class DefaultConflictDefinition implements ConflictDefinition {
     @Override
     public boolean isDependent(MessageContextPair r1, MessageContextPair r2) {
         return true;
     }
-    
-    
-    
 }

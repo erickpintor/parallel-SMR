@@ -2,90 +2,86 @@ package demo.dict;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Random;
 
 final class Command {
 
     private enum Type {
-        PUT {
+        INC(true) {
             @Override
-            Integer execute(Map<Integer, Integer> state, Encoded cmd) {
-                return state.put(cmd.getKey(), cmd.getValue());
+            Integer execute(Map<Integer, Integer> state, Command cmd) {
+                Integer key = cmd.getKey();
+                Integer next = state.get(key) + 1;
+                state.put(key, next);
+                return next;
             }
         },
 
-        GET {
+        GET(false) {
             @Override
-            Integer execute(Map<Integer, Integer> state, Encoded cmd) {
+            Integer execute(Map<Integer, Integer> state, Command cmd) {
                 return state.get(cmd.getKey());
             }
         };
 
-        abstract Integer execute(Map<Integer, Integer> state, Encoded command);
-    }
+        private final boolean isWrite;
 
-    private final Type type;
-    private final int key;
-    private final Integer value;
-
-    private Command(Type type, int key, Integer value) {
-        this.type = type;
-        this.key = key;
-        this.value = value;
-    }
-
-    static Command put(int key, int value) {
-        return new Command(Type.PUT, key, value);
-    }
-
-    static Command get(int key) {
-        return new Command(Type.GET, key, null);
-    }
-
-    static final class Encoded {
-
-        private final ByteBuffer data;
-
-        private Encoded(ByteBuffer data) {
-            this.data = data;
+        Type(boolean isWrite) {
+            this.isWrite = isWrite;
         }
 
-        private Type getType() {
-            data.position(0);
-            return Type.values()[data.get()];
-        }
+        abstract Integer execute(Map<Integer, Integer> state, Command cmd);
 
-        private Integer getKey() {
-            data.position(1);
-            return data.getInt();
-        }
-
-        private Integer getValue() {
-            data.position(5);
-            return data.getInt();
-        }
-
-        boolean conflictWith(Encoded other) {
-            if (getType() == Type.PUT || other.getType() == Type.PUT)
-                return getKey().equals(other.getKey());
-            return false;
-        }
-
-        Integer execute(Map<Integer, Integer> state) {
-            return getType().execute(state, this);
-        }
     }
 
-    static Encoded wrap(byte[] data) {
-        return new Encoded(ByteBuffer.wrap(data));
+    private final ByteBuffer data;
+
+    private Command(ByteBuffer data) {
+        this.data = data;
     }
 
-    static Encoded encode(Command command) {
-        // [1|type][4|key][4|value]
-        ByteBuffer data = ByteBuffer.allocate(9);
-        data.put((byte) command.type.ordinal());
-        data.putInt(command.key);
-        data.putInt(command.value);
+    private Command(Type type, int key) {
+        // [1|type][4|key]
+        data = ByteBuffer.allocate(5);
+        data.put((byte) type.ordinal());
+        data.putInt(key);
         data.flip();
-        return new Encoded(data);
+    }
+
+    static Command wrap(byte[] data) {
+        return new Command(ByteBuffer.wrap(data));
+    }
+
+    static Command random(Random random, int maxKey) {
+        Type type = Type.values()[random.nextInt(Type.values().length)];
+        return new Command(type, random.nextInt(maxKey));
+    }
+
+    private Type getType() {
+        data.position(0);
+        return Type.values()[data.get()];
+    }
+
+    private Integer getKey() {
+        data.position(1);
+        return data.getInt();
+    }
+
+    boolean conflictWith(Command other) {
+        return (getType().isWrite || other.getType().isWrite)
+                && getKey().equals(other.getKey());
+    }
+
+    Integer execute(Map<Integer, Integer> state) {
+        return getType().execute(state, this);
+    }
+
+    byte[] encode() {
+        return data.array();
+    }
+
+    @Override
+    public String toString() {
+        return getType() + "(" + getKey() + ")";
     }
 }

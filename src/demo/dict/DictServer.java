@@ -1,6 +1,7 @@
 package demo.dict;
 
 import bftsmart.tom.MessageContext;
+import bftsmart.tom.server.SingleExecutable;
 import parallelism.MessageContextPair;
 import parallelism.late.CBASEServiceReplica;
 import parallelism.late.COSType;
@@ -8,10 +9,10 @@ import parallelism.late.COSType;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
-final class DictServer {
+final class DictServer implements SingleExecutable {
 
     private static final Logger LOGGER = Logger.getLogger(DictServer.class.getName());
 
@@ -24,25 +25,36 @@ final class DictServer {
 
         new CBASEServiceReplica(
                 processID,
-                this::execute,
+                this,
                 null,
                 nThreads,
                 DictServer::isConflicting,
-                COSType.lockFreeGraph);
+                COSType.lockFreeGraph
+        );
     }
 
     private static boolean isConflicting(MessageContextPair a,
                                          MessageContextPair b) {
-        Command.Encoded cmdA = Command.wrap(a.operation);
-        Command.Encoded cmdB = Command.wrap(b.operation);
+        Command cmdA = Command.wrap(a.operation);
+        Command cmdB = Command.wrap(b.operation);
         return cmdA.conflictWith(cmdB);
     }
 
-    private byte[] execute(byte[] bytes, MessageContext ctx) {
+    @Override
+    public byte[] executeOrdered(byte[] bytes, MessageContext ctx) {
+        return execute(bytes);
+    }
+
+    @Override
+    public byte[] executeUnordered(byte[] bytes, MessageContext ctx) {
+        return execute(bytes);
+    }
+
+    private byte[] execute(byte[] bytes) {
+        Command command = Command.wrap(bytes);
         ByteBuffer resp = ByteBuffer.allocate(4);
-        Command.Encoded command = Command.wrap(bytes);
         resp.putInt(command.execute(dict));
-        return resp.flip().array();
+        return resp.array();
     }
 
     public static void main(String[] args) {

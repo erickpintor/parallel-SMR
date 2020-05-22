@@ -31,7 +31,6 @@ final class Command {
         }
 
         abstract Integer execute(Map<Integer, Integer> state, Command cmd);
-
     }
 
     private final ByteBuffer data;
@@ -52,9 +51,13 @@ final class Command {
         return new Command(ByteBuffer.wrap(data));
     }
 
-    static Command random(Random random, int maxKey) {
+    static Command random(Random random, int maxKey, float sd) {
         Type type = Type.values()[random.nextInt(Type.values().length)];
-        return new Command(type, random.nextInt(maxKey));
+        int key, mid = maxKey / 2;
+        do {
+            key = (int) Math.round(random.nextGaussian() * (mid * sd) + mid);
+        } while (key < 0 || key >= maxKey);
+        return new Command(type, key);
     }
 
     private Type getType() {
@@ -69,7 +72,7 @@ final class Command {
 
     boolean conflictWith(Command other) {
         return (getType().isWrite || other.getType().isWrite)
-                && getKey().equals(other.getKey());
+            && getKey().equals(other.getKey());
     }
 
     Integer execute(Map<Integer, Integer> state) {

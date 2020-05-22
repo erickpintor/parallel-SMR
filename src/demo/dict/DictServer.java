@@ -24,12 +24,12 @@ final class DictServer implements SingleExecutable {
             dict.put(i, 0);
 
         new CBASEServiceReplica(
-                processID,
-                this,
-                null,
-                nThreads,
-                DictServer::isConflicting,
-                COSType.lockFreeGraph
+            processID,
+            this,
+            null,
+            nThreads,
+            DictServer::isConflicting,
+            COSType.lockFreeGraph
         );
     }
 
@@ -51,9 +51,9 @@ final class DictServer implements SingleExecutable {
     }
 
     private byte[] execute(byte[] bytes) {
-        Command command = Command.wrap(bytes);
+        Command cmd = Command.wrap(bytes);
         ByteBuffer resp = ByteBuffer.allocate(4);
-        resp.putInt(command.execute(dict));
+        resp.putInt(cmd.execute(dict));
         return resp.array();
     }
 

@@ -9,9 +9,6 @@ import bftsmart.tom.core.messages.TOMMessage;
 import bftsmart.tom.server.Executable;
 import bftsmart.tom.server.Recoverable;
 import bftsmart.tom.server.SingleExecutable;
-import java.util.concurrent.CyclicBarrier;
-
-import bftsmart.util.ThroughputStatistics;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import parallelism.MessageContextPair;
@@ -20,6 +17,8 @@ import parallelism.ParallelMapping;
 import parallelism.ParallelServiceReplica;
 import parallelism.late.graph.DependencyGraph;
 
+import java.util.concurrent.CyclicBarrier;
+
 /**
  *
  * @author eduardo
@@ -27,7 +26,8 @@ import parallelism.late.graph.DependencyGraph;
 public class CBASEServiceReplica extends ParallelServiceReplica {
 
     private final CyclicBarrier recBarrier = new CyclicBarrier(2);
-    private Meter rps;
+    private Meter requestsPerSecond;
+    private Meter commandsPerSecond;
 
     public CBASEServiceReplica(int id,
                                Executable executor,
@@ -47,7 +47,8 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                                MetricRegistry metrics) {
         super(id, executor, recoverer, new CBASEScheduler(cf, numWorkers, graphType));
         if (metrics != null) {
-            this.rps = metrics.meter("requests");
+            this.requestsPerSecond = metrics.meter("requests");
+            this.commandsPerSecond = metrics.meter("commands");
         }
     }
 
@@ -62,20 +63,16 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
 
     @Override
     protected void initWorkers(int n, int id) {
-        int tid = 0;
         for (int i = 0; i < n; i++) {
-            new CBASEServiceReplicaWorker((CBASEScheduler) this.scheduler, tid).start();
-            tid++;
+            new CBASEServiceReplicaWorker((CBASEScheduler) this.scheduler).start();
         }
     }
 
     private class CBASEServiceReplicaWorker extends Thread {
 
         private CBASEScheduler s;
-        private int thread_id;
 
-        public CBASEServiceReplicaWorker(CBASEScheduler s, int id) {
-            this.thread_id = id;
+        public CBASEServiceReplicaWorker(CBASEScheduler s) {
             this.s = s;
 
             //System.out.println("Criou um thread: " + id);
@@ -101,6 +98,8 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                     }
                 } else {
                     msg.resp = ((SingleExecutable) executor).executeOrdered(msg.operation, null);
+                    if (commandsPerSecond != null)
+                        commandsPerSecond.mark();
                     //exec++;
                     
                     //System.out.println(thread_id+" Executadas: "+exec);
@@ -114,12 +113,11 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                         //bftsmart.tom.util.Logger.println("(ParallelServiceReplica.receiveMessages) sending reply to "
                         //      + msg.message.getSender());
                         replier.manageReply(ctx.request, null);
-                    }
-                    if (rps != null) {
-                        rps.mark();
+                        if (requestsPerSecond != null)
+                            requestsPerSecond.mark();
                     }
                 }
-                
+
                 //s.removeRequest(msg);
                 s.remove(node);
             }

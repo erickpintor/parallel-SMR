@@ -62,27 +62,27 @@ final class DictClient extends Thread {
     public static void main(String[] args) {
         if (args.length != 7) {
             System.out.println(
-                "Usage: DictClient " +
-                    "<process id> " +
-                    "<threads> " +
-                    "<ops per request> " +
-                    "<requests> " +
-                    "<standard deviation" +
-                    "<max key>" +
-                    "<max duration sec>"
+                    "Usage: DictClient " +
+                            "<process id> " +
+                            "<threads> " +
+                            "<ops per request> " +
+                            "<requests> " +
+                            "<standard deviation" +
+                            "<max key>" +
+                            "<max duration sec>"
             );
             System.exit(1);
         }
 
         try {
             runWorkload(
-                Integer.parseInt(args[0]),
-                Integer.parseInt(args[1]),
-                Integer.parseInt(args[2]),
-                Integer.parseInt(args[3]),
-                Integer.parseInt(args[4]),
-                Integer.parseInt(args[5]),
-                Float.parseFloat(args[6])
+                    Integer.parseInt(args[0]),
+                    Integer.parseInt(args[1]),
+                    Integer.parseInt(args[2]),
+                    Integer.parseInt(args[3]),
+                    Integer.parseInt(args[4]),
+                    Integer.parseInt(args[5]),
+                    Float.parseFloat(args[6])
             );
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Invalid arguments", e);
@@ -106,13 +106,13 @@ final class DictClient extends Thread {
 
         CountDownLatch completed = new CountDownLatch(nThreads);
         startClients(
-            processID,
-            nThreads,
-            opsPerRequest,
-            nRequests,
-            maxKey,
-            conflictSD,
-            completed
+                processID,
+                nThreads,
+                opsPerRequest,
+                nRequests,
+                maxKey,
+                conflictSD,
+                completed
         );
         LOGGER.info("All clients started... running workload...");
         completed.await(maxDurationSec, TimeUnit.SECONDS);
@@ -131,22 +131,22 @@ final class DictClient extends Thread {
 
         for (int i = 0; i < nThreads - 1; i++) {
             new DictClient(
-                processID + i,
-                opsPerRequest,
-                requestsPerThread,
-                maxKey,
-                conflictSD,
-                completed
+                    processID + i,
+                    opsPerRequest,
+                    requestsPerThread,
+                    maxKey,
+                    conflictSD,
+                    completed
             ).start();
         }
 
         new DictClient(
-            processID + nThreads - 1,
-            opsPerRequest,
-            lastThreadRequests,
-            maxKey,
-            conflictSD,
-            completed
+                processID + nThreads - 1,
+                opsPerRequest,
+                lastThreadRequests,
+                maxKey,
+                conflictSD,
+                completed
         ).start();
     }
 }

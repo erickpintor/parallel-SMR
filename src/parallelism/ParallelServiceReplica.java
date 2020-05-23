@@ -48,7 +48,6 @@ import parallelism.scheduler.Scheduler;
 public class ParallelServiceReplica extends ServiceReplica {
 
     protected Scheduler scheduler;
-    public ThroughputStatistics statistics;
 
     protected Map<String, MultiOperationCtx> ctxs = new Hashtable<>();
 
@@ -115,8 +114,6 @@ public class ParallelServiceReplica extends ServiceReplica {
         /* if(this.scheduler.getMapping().getNumThreadsAC() <= 1){
             useBarrier = false;
         }*/
-
-        statistics = new ThroughputStatistics(id, n, "results_" + id + ".txt", "");
 
         int tid = 0;
         for (int i = 0; i < n; i++) {
@@ -203,7 +200,6 @@ public class ParallelServiceReplica extends ServiceReplica {
 
                         this.ctxs.put(request.toString(), ctx);
 
-                        statistics.start();
                         for (int i = 0; i < reqs.operations.length; i++) {
                             this.scheduler.schedule(new MessageContextPair(request, reqs.operations[i].classId, i, reqs.operations[i].data));
                         }
@@ -430,8 +426,6 @@ public class ParallelServiceReplica extends ServiceReplica {
                                 //bftsmart.tom.util.Logger.println("(ParallelServiceReplica.receiveMessages) sending reply to "+ msg.message.getSender());
                                 replier.manageReply(ctx.request, null);
                             }
-                            statistics.computeStatistics(thread_id, 1);
-
                         } else if (ct.type == ClassToThreads.SYNC && ct.tIds.length == 1) {//SYNC mas só com 1 thread, não precisa usar barreira
                             msg.resp = ((SingleExecutable) executor).executeOrdered(msg.operation, null);
                             MultiOperationCtx ctx = ctxs.get(msg.request.toString());
@@ -445,7 +439,6 @@ public class ParallelServiceReplica extends ServiceReplica {
                                 replier.manageReply(ctx.request, null);
 
                             }
-                            statistics.computeStatistics(thread_id, 1);
                         } else if (ct.type == ClassToThreads.SYNC) {
                             if (thread_id == scheduler.getMapping().getExecutorThread(msg.classId)) {
                                 scheduler.getMapping().getBarrier(msg.classId).await();
@@ -462,7 +455,6 @@ public class ParallelServiceReplica extends ServiceReplica {
                                     replier.manageReply(ctx.request, null);
 
                                 }
-                                statistics.computeStatistics(thread_id, 1);
                                 scheduler.getMapping().getBarrier(msg.classId).await();
                             } else {
                                 scheduler.getMapping().getBarrier(msg.classId).await();

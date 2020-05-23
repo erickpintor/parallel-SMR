@@ -9,8 +9,11 @@ import bftsmart.tom.core.messages.TOMMessage;
 import bftsmart.tom.server.Executable;
 import bftsmart.tom.server.Recoverable;
 import bftsmart.tom.server.SingleExecutable;
-import bftsmart.util.ThroughputStatistics;
 import java.util.concurrent.CyclicBarrier;
+
+import bftsmart.util.ThroughputStatistics;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import parallelism.MessageContextPair;
 import parallelism.MultiOperationCtx;
 import parallelism.ParallelMapping;
@@ -23,11 +26,29 @@ import parallelism.late.graph.DependencyGraph;
  */
 public class CBASEServiceReplica extends ParallelServiceReplica {
 
-    private CyclicBarrier recBarrier = new CyclicBarrier(2);
+    private final CyclicBarrier recBarrier = new CyclicBarrier(2);
+    private Meter rps;
 
-    public CBASEServiceReplica(int id, Executable executor, Recoverable recoverer, int numWorkers, ConflictDefinition cf, COSType graphType) {
+    public CBASEServiceReplica(int id,
+                               Executable executor,
+                               Recoverable recoverer,
+                               int numWorkers,
+                               ConflictDefinition cf,
+                               COSType graphType) {
+        this(id, executor, recoverer, numWorkers, cf, graphType, null);
+    }
+
+    public CBASEServiceReplica(int id,
+                               Executable executor,
+                               Recoverable recoverer,
+                               int numWorkers,
+                               ConflictDefinition cf,
+                               COSType graphType,
+                               MetricRegistry metrics) {
         super(id, executor, recoverer, new CBASEScheduler(cf, numWorkers, graphType));
-
+        if (metrics != null) {
+            this.rps = metrics.meter("requests");
+        }
     }
 
     public CyclicBarrier getReconfBarrier() {
@@ -41,9 +62,6 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
 
     @Override
     protected void initWorkers(int n, int id) {
-
-        statistics = new ThroughputStatistics(id, n, "results_" + id + ".txt", "");
-
         int tid = 0;
         for (int i = 0; i < n; i++) {
             new CBASEServiceReplicaWorker((CBASEScheduler) this.scheduler, tid).start();
@@ -97,7 +115,9 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                         //      + msg.message.getSender());
                         replier.manageReply(ctx.request, null);
                     }
-                    statistics.computeStatistics(thread_id, 1);
+                    if (rps != null) {
+                        rps.mark();
+                    }
                 }
                 
                 //s.removeRequest(msg);

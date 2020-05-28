@@ -10,8 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,18 +22,16 @@ public class MultiOperationResponse {
     public Response[] operations;
 
     public MultiOperationResponse(int number) {
-        this.operations = new Response[number];
-        /*for(int i = 0; i < operations.length;i++){
-            operations[i] = null;
-
-            
-        }*/
+        operations = new Response[number];
+        for (int i = 0; i < operations.length; i++) {
+            operations[i] = new Response();
+        }
     }
 
     
     public boolean isComplete(){
-        for(int i = 0; i < operations.length;i++){
-            if(operations[i] == null){
+        for (Response operation : operations) {
+            if (operation.data == null) {
                 return false;
             }
         }
@@ -43,7 +39,7 @@ public class MultiOperationResponse {
     }
     
     public void add(int index, byte[] data){
-        this.operations[index] = new Response(data);
+        this.operations[index].data = data;
     }
     
     public MultiOperationResponse(byte[] buffer) {
@@ -105,7 +101,7 @@ public class MultiOperationResponse {
 
         
         
-        public byte[] data;
+        public volatile byte[] data;
         }
 
 }

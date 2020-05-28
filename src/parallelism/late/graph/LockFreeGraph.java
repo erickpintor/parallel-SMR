@@ -100,8 +100,8 @@ public class LockFreeGraph extends DependencyGraph {
         public AtomicBoolean removedAtomic;
         public AtomicBoolean readyAtomic;
 
-        public boolean inserted = false;
-        
+        public volatile boolean inserted = false;
+
         eNode headDepOn;
         eNode tailDepOn;
 

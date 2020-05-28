@@ -11,6 +11,7 @@ import bftsmart.tom.server.Recoverable;
 import bftsmart.tom.server.SingleExecutable;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import infra.stats.ServerMetrics;
 import parallelism.MessageContextPair;
 import parallelism.MultiOperationCtx;
 import parallelism.ParallelMapping;
@@ -26,8 +27,7 @@ import java.util.concurrent.CyclicBarrier;
 public class CBASEServiceReplica extends ParallelServiceReplica {
 
     private final CyclicBarrier recBarrier = new CyclicBarrier(2);
-    private Meter requestsPerSecond;
-    private Meter commandsPerSecond;
+    private final ServerMetrics metrics;
 
     public CBASEServiceReplica(int id,
                                Executable executor,
@@ -44,12 +44,9 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                                int numWorkers,
                                ConflictDefinition cf,
                                COSType graphType,
-                               MetricRegistry metrics) {
+                               ServerMetrics metrics) {
         super(id, executor, recoverer, new CBASEScheduler(cf, numWorkers, graphType));
-        if (metrics != null) {
-            this.requestsPerSecond = metrics.meter("requests");
-            this.commandsPerSecond = metrics.meter("commands");
-        }
+        this.metrics = metrics;
     }
 
     public CyclicBarrier getReconfBarrier() {
@@ -98,8 +95,8 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                     }
                 } else {
                     msg.resp = ((SingleExecutable) executor).executeOrdered(msg.operation, null);
-                    if (commandsPerSecond != null)
-                        commandsPerSecond.mark();
+                    if (metrics != null)
+                        metrics.commands.mark();
                     //exec++;
                     
                     //System.out.println(thread_id+" Executadas: "+exec);
@@ -113,8 +110,8 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                         //bftsmart.tom.util.Logger.println("(ParallelServiceReplica.receiveMessages) sending reply to "
                         //      + msg.message.getSender());
                         replier.manageReply(ctx.request, null);
-                        if (requestsPerSecond != null)
-                            requestsPerSecond.mark();
+                        if (metrics != null)
+                            metrics.requests.mark();
                     }
                 }
 

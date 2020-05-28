@@ -2,9 +2,7 @@ package demo.dict;
 
 import bftsmart.tom.ParallelServiceProxy;
 import bftsmart.util.MultiOperationRequest;
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
+import infra.stats.ClientMetrics;
 import parallelism.ParallelMapping;
 
 import java.util.Random;
@@ -22,7 +20,7 @@ final class DictClient extends Thread {
     private final ParallelServiceProxy proxy;
     private final AtomicInteger nRequests;
     private final CountDownLatch completed;
-    private final Meter rps;
+    private final ClientMetrics metrics;
     private final int opsPerRequest;
     private final int maxKey;
     private final float conflictSD; // standard deviation
@@ -33,15 +31,15 @@ final class DictClient extends Thread {
                        float conflictSD,
                        AtomicInteger nRequests,
                        CountDownLatch completed,
-                       MetricRegistry metrics) {
+                       ClientMetrics metrics) {
         super("DictClient-" + clientID);
         this.proxy = new ParallelServiceProxy(clientID);
-        this.rps = metrics.meter("requests");
         this.opsPerRequest = opsPerRequest;
         this.maxKey = maxKey;
         this.conflictSD = conflictSD;
         this.nRequests = nRequests;
         this.completed = completed;
+        this.metrics = metrics;
     }
 
     @Override
@@ -49,7 +47,7 @@ final class DictClient extends Thread {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         while (nRequests.decrementAndGet() >= 0) {
             sendRequest(random);
-            rps.mark();
+            metrics.requests.mark();
         }
         completed.countDown();
     }
@@ -113,7 +111,7 @@ final class DictClient extends Thread {
                                     int maxDurationSec,
                                     float conflictSD) throws InterruptedException {
 
-        MetricRegistry metrics = new MetricRegistry();
+        ClientMetrics metrics = new ClientMetrics();
         CountDownLatch completed = new CountDownLatch(nThreads);
         startClients(
                 processID,
@@ -126,7 +124,7 @@ final class DictClient extends Thread {
                 metrics
         );
         LOGGER.info("All clients started... running workload...");
-        startMetricsReport(metrics);
+        metrics.startReporting();
         completed.await(maxDurationSec, TimeUnit.SECONDS);
     }
 
@@ -137,7 +135,7 @@ final class DictClient extends Thread {
                                      int maxKey,
                                      float conflictSD,
                                      CountDownLatch completed,
-                                     MetricRegistry metrics) {
+                                     ClientMetrics metrics) {
 
         AtomicInteger requests = new AtomicInteger(nRequests);
 
@@ -152,14 +150,5 @@ final class DictClient extends Thread {
                     metrics
             ).start();
         }
-    }
-
-    private static void startMetricsReport(MetricRegistry metrics) {
-        ConsoleReporter consoleReporter =
-                ConsoleReporter
-                        .forRegistry(metrics)
-                        .convertRatesTo(TimeUnit.SECONDS)
-                        .build();
-        consoleReporter.start(10, TimeUnit.SECONDS);
     }
 }

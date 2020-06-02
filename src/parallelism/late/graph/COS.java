@@ -5,13 +5,12 @@
  */
 package parallelism.late.graph;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.RatioGauge;
+import com.codahale.metrics.*;
 import parallelism.MessageContextPair;
 import parallelism.late.CBASEScheduler;
 
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.LongAdder;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
@@ -20,26 +19,35 @@ import static com.codahale.metrics.MetricRegistry.name;
  */
 public abstract class COS {
 
-    private static final class Stats {
-        final Counter size;
-        final Counter free;
+    private final class Stats {
+        private final Histogram size;
+        private final Histogram free;
 
         Stats(MetricRegistry metrics) {
-            size = metrics.counter(name(COS.class, "size"));
-            free = metrics.counter(name(COS.class, "free"));
+            size = metrics.histogram(name(COS.class, "size"));
+            free = metrics.histogram(name(COS.class, "free"));
             metrics.register(name(COS.class, "conflict"), new RatioGauge() {
                 @Override
                 protected Ratio getRatio() {
-                    return Ratio.of(free.getCount(), size.getCount());
+                    return Ratio.of(
+                            free.getSnapshot().getMean(),
+                            size.getSnapshot().getMean());
                 }
                 @Override
                 public Double getValue() {
-                    return 1 - super.getValue();
+                    return Math.max(1 - super.getValue(), 0);
                 }
             });
         }
+
+        void update() {
+            size.update(COS.this.size.intValue());
+            free.update(COS.this.free.intValue());
+        }
     }
 
+    private final LongAdder size = new LongAdder();
+    private final LongAdder free = new LongAdder();
     private final Semaphore ready = new Semaphore(0);  // tells if there is ready to execute
     private final Semaphore space;                     // counting semaphore for size of graph
     private Stats stats;
@@ -60,21 +68,23 @@ public abstract class COS {
 
     public void insert(Object request) throws InterruptedException {
         space.acquire();
-        int free = COSInsert(request);
-        ready.release(free);
+        int nReady = COSInsert(request);
+        ready.release(nReady);
         if (stats != null) {
-            stats.size.inc();
-            stats.free.inc(free);
+            size.increment();
+            free.add(nReady);
+            stats.update();
         }
     }
 
     public void remove(Object requestNode) throws InterruptedException {
-        int free = COSRemove(requestNode);
+        int nReady = COSRemove(requestNode);
         space.release();
-        ready.release(free);
+        ready.release(nReady);
         if (stats != null) {
-            stats.size.dec();
-            stats.free.dec(1 - free);
+            free.add(-1 + nReady);
+            size.decrement();
+            stats.update();
         }
     }
 

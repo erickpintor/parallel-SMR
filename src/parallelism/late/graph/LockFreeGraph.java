@@ -6,6 +6,8 @@
 package parallelism.late.graph;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.codahale.metrics.MetricRegistry;
 import parallelism.late.CBASEScheduler;
 
 /**
@@ -14,8 +16,8 @@ import parallelism.late.CBASEScheduler;
  */
 public class LockFreeGraph extends DependencyGraph {
 
-    public LockFreeGraph(int limit, CBASEScheduler scheduler) {
-        super(limit, scheduler);
+    public LockFreeGraph(int limit, CBASEScheduler scheduler, MetricRegistry metrics) {
+        super(limit, scheduler, metrics);
 
         head = new LockFreeNode(null, Vertex.HEAD);
         tail = new LockFreeNode(null, Vertex.TAIL);

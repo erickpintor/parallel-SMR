@@ -11,7 +11,6 @@ import bftsmart.tom.server.Recoverable;
 import bftsmart.tom.server.SingleExecutable;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import infra.stats.ServerMetrics;
 import parallelism.MessageContextPair;
 import parallelism.MultiOperationCtx;
 import parallelism.ParallelMapping;
@@ -20,14 +19,26 @@ import parallelism.late.graph.DependencyGraph;
 
 import java.util.concurrent.CyclicBarrier;
 
+import static com.codahale.metrics.MetricRegistry.name;
+
 /**
  *
  * @author eduardo
  */
 public class CBASEServiceReplica extends ParallelServiceReplica {
 
+    private static final class Stats {
+        final Meter commands;
+        final Meter requests;
+
+        Stats(MetricRegistry metrics) {
+            commands = metrics.meter(name(CBASEServiceReplica.class, "commands"));
+            requests = metrics.meter(name(CBASEServiceReplica.class, "requests"));
+        }
+    }
+
     private final CyclicBarrier recBarrier = new CyclicBarrier(2);
-    private final ServerMetrics metrics;
+    private Stats stats;
 
     public CBASEServiceReplica(int id,
                                Executable executor,
@@ -44,9 +55,11 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                                int numWorkers,
                                ConflictDefinition cf,
                                COSType graphType,
-                               ServerMetrics metrics) {
-        super(id, executor, recoverer, new CBASEScheduler(cf, numWorkers, graphType));
-        this.metrics = metrics;
+                               MetricRegistry metrics) {
+        super(id, executor, recoverer, new CBASEScheduler(cf, numWorkers, graphType, metrics));
+        if (metrics != null) {
+            this.stats = new Stats(metrics);
+        }
     }
 
     public CyclicBarrier getReconfBarrier() {
@@ -83,7 +96,7 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                 // System.out.println("vai pegar...");
                 Object node = s.get();
                 //System.out.println("Pegou req...");
-                
+
                 msg = ((DependencyGraph.vNode) node).getAsRequest();
                 //System.out.println("Pegou req..."+ msg.toString());
                 if (msg.classId == ParallelMapping.CONFLICT_RECONFIGURATION) {
@@ -95,12 +108,11 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                     }
                 } else {
                     msg.resp = ((SingleExecutable) executor).executeOrdered(msg.operation, null);
-                    if (metrics != null)
-                        metrics.commands.mark();
+                    if (stats != null) stats.commands.mark();
                     //exec++;
-                    
+
                     //System.out.println(thread_id+" Executadas: "+exec);
-                    
+
                     MultiOperationCtx ctx = ctxs.get(msg.request.toString());
                     ctx.add(msg.index, msg.resp);
                     if (ctx.response.isComplete() && !ctx.finished && (ctx.interger.getAndIncrement() == 0)) {
@@ -110,8 +122,7 @@ public class CBASEServiceReplica extends ParallelServiceReplica {
                         //bftsmart.tom.util.Logger.println("(ParallelServiceReplica.receiveMessages) sending reply to "
                         //      + msg.message.getSender());
                         replier.manageReply(ctx.request, null);
-                        if (metrics != null)
-                            metrics.requests.mark();
+                        if (stats != null) stats.requests.mark();
                     }
                 }
 

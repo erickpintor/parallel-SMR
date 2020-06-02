@@ -2,7 +2,9 @@ package demo.dict;
 
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.server.SingleExecutable;
-import infra.stats.ServerMetrics;
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.CsvReporter;
+import com.codahale.metrics.MetricRegistry;
 import parallelism.MessageContextPair;
 import parallelism.late.CBASEServiceReplica;
 import parallelism.late.COSType;
@@ -11,6 +13,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,14 +22,13 @@ final class DictServer implements SingleExecutable {
     private static final Logger LOGGER = Logger.getLogger(DictServer.class.getName());
 
     private final Map<Integer, Integer> dict;
-    private final ServerMetrics metrics;
 
     private DictServer(int processID, int nThreads, int nKeys, File metricsPath) {
         dict = new HashMap<>(nKeys);
         for (int i = 0; i < nKeys; i++)
             dict.put(i, 0);
 
-        metrics = new ServerMetrics();
+        MetricRegistry metrics = new MetricRegistry();
         new CBASEServiceReplica(
                 processID,
                 this,
@@ -36,16 +38,30 @@ final class DictServer implements SingleExecutable {
                 COSType.lockFreeGraph,
                 metrics
         );
-        metrics.startReporting(metricsPath);
+        startReporting(metrics, metricsPath);
+    }
+
+    private static void startReporting(MetricRegistry metrics, File path) {
+        CsvReporter csvReporter =
+                CsvReporter
+                        .forRegistry(metrics)
+                        .convertRatesTo(TimeUnit.SECONDS)
+                        .build(path);
+        csvReporter.start(1, TimeUnit.SECONDS);
+
+        ConsoleReporter consoleReporter =
+                ConsoleReporter
+                        .forRegistry(metrics)
+                        .convertRatesTo(TimeUnit.SECONDS)
+                        .build();
+        consoleReporter.start(10, TimeUnit.SECONDS);
     }
 
     private boolean isConflicting(MessageContextPair a,
                                   MessageContextPair b) {
         Command cmdA = Command.wrap(a.operation);
         Command cmdB = Command.wrap(b.operation);
-        boolean conflict = cmdA.conflictWith(cmdB);
-        if (conflict) metrics.conflicts.mark();
-        return conflict;
+        return cmdA.conflictWith(cmdB);
     }
 
     @Override

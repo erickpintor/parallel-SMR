@@ -21,7 +21,7 @@ public class CoarseGrainedLock extends DependencyGraph{
     
     
     public CoarseGrainedLock(int limit, CBASEScheduler scheduler) {
-        super(limit,scheduler);
+        super(limit,scheduler, null);
         System.out.println("Configured with coarseLock graph.");
     }
 

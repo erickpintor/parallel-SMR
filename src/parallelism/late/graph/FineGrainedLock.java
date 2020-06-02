@@ -19,7 +19,7 @@ public class FineGrainedLock extends DependencyGraph{
     
     
     public FineGrainedLock(int limit, CBASEScheduler scheduler) {
-        super(limit, scheduler);
+        super(limit, scheduler, null);
         System.out.println("Configured with fineLock graph.");
     }
 

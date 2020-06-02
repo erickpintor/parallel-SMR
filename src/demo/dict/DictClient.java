@@ -2,7 +2,9 @@ package demo.dict;
 
 import bftsmart.tom.ParallelServiceProxy;
 import bftsmart.util.MultiOperationRequest;
-import infra.stats.ClientMetrics;
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import parallelism.ParallelMapping;
 
 import java.util.Random;
@@ -13,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.codahale.metrics.MetricRegistry.name;
+
 final class DictClient extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(DictClient.class.getName());
@@ -20,7 +24,7 @@ final class DictClient extends Thread {
     private final ParallelServiceProxy proxy;
     private final AtomicInteger nRequests;
     private final CountDownLatch completed;
-    private final ClientMetrics metrics;
+    private final Timer requestTimer;
     private final int opsPerRequest;
     private final int maxKey;
     private final float keySparseness;
@@ -33,7 +37,7 @@ final class DictClient extends Thread {
                        float conflictPercentage,
                        AtomicInteger nRequests,
                        CountDownLatch completed,
-                       ClientMetrics metrics) {
+                       Timer requestTimer) {
         super("DictClient-" + clientID);
         this.proxy = new ParallelServiceProxy(clientID);
         this.opsPerRequest = opsPerRequest;
@@ -42,7 +46,7 @@ final class DictClient extends Thread {
         this.conflictPercentage = conflictPercentage;
         this.nRequests = nRequests;
         this.completed = completed;
-        this.metrics = metrics;
+        this.requestTimer = requestTimer;
     }
 
     @Override
@@ -50,14 +54,15 @@ final class DictClient extends Thread {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         while (nRequests.decrementAndGet() >= 0) {
             sendRequest(random);
-            metrics.requests.mark();
         }
         completed.countDown();
     }
 
     private void sendRequest(Random random) {
         MultiOperationRequest request = newRequest(random);
-        proxy.invokeParallel(request.serialize(), ParallelMapping.SYNC_ALL);
+        try (Timer.Context ignored = requestTimer.time()) {
+            proxy.invokeParallel(request.serialize(), ParallelMapping.SYNC_ALL);
+        }
     }
 
     private MultiOperationRequest newRequest(Random random) {
@@ -123,7 +128,7 @@ final class DictClient extends Thread {
                                     float conflictPercentage)
             throws InterruptedException {
 
-        ClientMetrics metrics = new ClientMetrics();
+        MetricRegistry metrics = new MetricRegistry();
         CountDownLatch completed = new CountDownLatch(nThreads);
         startClients(
                 processID,
@@ -137,8 +142,17 @@ final class DictClient extends Thread {
                 metrics
         );
         LOGGER.info("All clients started... running workload...");
-        metrics.startReporting();
+        startReporting(metrics);
         completed.await(maxDurationSec, TimeUnit.SECONDS);
+    }
+
+    private static void startReporting(MetricRegistry metrics) {
+        ConsoleReporter consoleReporter =
+                ConsoleReporter
+                        .forRegistry(metrics)
+                        .convertRatesTo(TimeUnit.SECONDS)
+                        .build();
+        consoleReporter.start(10, TimeUnit.SECONDS);
     }
 
     private static void startClients(int processID,
@@ -149,9 +163,10 @@ final class DictClient extends Thread {
                                      float conflictSD,
                                      float conflictPercentage,
                                      CountDownLatch completed,
-                                     ClientMetrics metrics) {
+                                     MetricRegistry metrics) {
 
         AtomicInteger requests = new AtomicInteger(nRequests);
+        Timer requestTimer = metrics.timer(name(DictClient.class, "requests"));
 
         for (int i = 0; i < nThreads; i++) {
             new DictClient(
@@ -162,7 +177,7 @@ final class DictClient extends Thread {
                     conflictPercentage,
                     requests,
                     completed,
-                    metrics
+                    requestTimer
             ).start();
         }
     }

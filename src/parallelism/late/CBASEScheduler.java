@@ -5,6 +5,7 @@
  */
 package parallelism.late;
 
+import com.codahale.metrics.MetricRegistry;
 import parallelism.late.graph.COS;
 import parallelism.MessageContextPair;
 import parallelism.ParallelMapping;
@@ -24,11 +25,10 @@ public class CBASEScheduler implements Scheduler{
     
      private ConflictDefinition conflictDef;
     
-    public CBASEScheduler(int numWorkers, COSType cosType) {
-        this(null, numWorkers, cosType);
-    }
-
-    public CBASEScheduler(ConflictDefinition cd, int numWorkers, COSType cosType) {
+    public CBASEScheduler(ConflictDefinition cd,
+                          int numWorkers,
+                          COSType cosType,
+                          MetricRegistry metrics) {
         //cos = new COS(150,graphType,this);
         int limit = 150;
         if(cosType == null || cosType == COSType.coarseLockGraph){
@@ -36,7 +36,7 @@ public class CBASEScheduler implements Scheduler{
         }else if(cosType == COSType.fineLockGraph){
             this.cos = new FineGrainedLock(limit, this);
         }else if (cosType == COSType.lockFreeGraph){
-            this.cos = new LockFreeGraph(limit, this);
+            this.cos = new LockFreeGraph(limit, this, metrics);
         }else{
            this.cos = new CoarseGrainedLock(limit, this);
         }

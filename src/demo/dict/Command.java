@@ -51,12 +51,23 @@ final class Command {
         return new Command(ByteBuffer.wrap(data));
     }
 
-    static Command random(Random random, int maxKey, float sd) {
-        Type type = Type.values()[random.nextInt(Type.values().length)];
+    static Command random(Random random,
+                          int maxKey,
+                          float sparseness,
+                          float conflict) {
+        Type type;
+        if (random.nextFloat() >= conflict) {
+            type = Type.GET;
+        } else {
+            type = Type.INC;
+        }
+
         int key, mid = maxKey / 2;
         do {
-            key = (int) Math.round(random.nextGaussian() * (mid * sd) + mid);
+            key = (int) Math.round(
+                    random.nextGaussian() * (mid * sparseness) + mid);
         } while (key < 0 || key >= maxKey);
+
         return new Command(type, key);
     }
 
@@ -72,7 +83,7 @@ final class Command {
 
     boolean conflictWith(Command other) {
         return (getType().isWrite || other.getType().isWrite)
-            && getKey().equals(other.getKey());
+                && getKey().equals(other.getKey());
     }
 
     Integer execute(Map<Integer, Integer> state) {

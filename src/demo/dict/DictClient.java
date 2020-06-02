@@ -23,12 +23,14 @@ final class DictClient extends Thread {
     private final ClientMetrics metrics;
     private final int opsPerRequest;
     private final int maxKey;
-    private final float conflictSD; // standard deviation
+    private final float keySparseness;
+    private final float conflictPercentage;
 
     private DictClient(int clientID,
                        int opsPerRequest,
                        int maxKey,
-                       float conflictSD,
+                       float keySparseness,
+                       float conflictPercentage,
                        AtomicInteger nRequests,
                        CountDownLatch completed,
                        ClientMetrics metrics) {
@@ -36,7 +38,8 @@ final class DictClient extends Thread {
         this.proxy = new ParallelServiceProxy(clientID);
         this.opsPerRequest = opsPerRequest;
         this.maxKey = maxKey;
-        this.conflictSD = conflictSD;
+        this.keySparseness = keySparseness;
+        this.conflictPercentage = conflictPercentage;
         this.nRequests = nRequests;
         this.completed = completed;
         this.metrics = metrics;
@@ -60,14 +63,19 @@ final class DictClient extends Thread {
     private MultiOperationRequest newRequest(Random random) {
         MultiOperationRequest request = new MultiOperationRequest(opsPerRequest);
         for (int i = 0; i < opsPerRequest; i++) {
-            Command cmd = Command.random(random, maxKey, conflictSD);
+            Command cmd = Command.random(
+                    random,
+                    maxKey,
+                    keySparseness,
+                    conflictPercentage
+            );
             request.add(i, cmd.encode(), ParallelMapping.CONC_ALL);
         }
         return request;
     }
 
     public static void main(String[] args) {
-        if (args.length != 7) {
+        if (args.length != 8) {
             System.out.println(
                     "Usage: DictClient " +
                             "<process id> " +
@@ -76,7 +84,8 @@ final class DictClient extends Thread {
                             "<requests> " +
                             "<max key> " +
                             "<max duration sec> " +
-                            "<standard deviation>"
+                            "<key sparseness>" +
+                            "<conflict percentage>"
             );
             System.exit(1);
         }
@@ -89,7 +98,8 @@ final class DictClient extends Thread {
                     Integer.parseInt(args[3]),
                     Integer.parseInt(args[4]),
                     Integer.parseInt(args[5]),
-                    Float.parseFloat(args[6])
+                    Float.parseFloat(args[6]),
+                    Float.parseFloat(args[7])
             );
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Invalid arguments", e);
@@ -109,7 +119,9 @@ final class DictClient extends Thread {
                                     int nRequests,
                                     int maxKey,
                                     int maxDurationSec,
-                                    float conflictSD) throws InterruptedException {
+                                    float keySparseness,
+                                    float conflictPercentage)
+            throws InterruptedException {
 
         ClientMetrics metrics = new ClientMetrics();
         CountDownLatch completed = new CountDownLatch(nThreads);
@@ -119,7 +131,8 @@ final class DictClient extends Thread {
                 opsPerRequest,
                 nRequests,
                 maxKey,
-                conflictSD,
+                keySparseness,
+                conflictPercentage,
                 completed,
                 metrics
         );
@@ -134,6 +147,7 @@ final class DictClient extends Thread {
                                      int nRequests,
                                      int maxKey,
                                      float conflictSD,
+                                     float conflictPercentage,
                                      CountDownLatch completed,
                                      ClientMetrics metrics) {
 
@@ -145,6 +159,7 @@ final class DictClient extends Thread {
                     opsPerRequest,
                     maxKey,
                     conflictSD,
+                    conflictPercentage,
                     requests,
                     completed,
                     metrics

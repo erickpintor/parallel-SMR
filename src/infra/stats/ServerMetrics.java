@@ -21,8 +21,9 @@ public class ServerMetrics {
         metrics.register("conflict-ratio", new RatioGauge() {
             @Override
             protected Ratio getRatio() {
-                return Ratio.of(conflicts.getOneMinuteRate(),
-                        commands.getOneMinuteRate());
+                return Ratio.of(
+                        conflicts.getMeanRate(),
+                        commands.getMeanRate());
             }
         });
     }

@@ -1,4 +1,8 @@
-/dist/
-/build/
-/metrics/
-.ipynb_checkpoints/
+dist/
+build/
+metrics/
+ops/tmp/
+ops/private/
+ops/venv/
+ops/parallel-SMR.zip
+analysis/.ipynb_checkpoints/

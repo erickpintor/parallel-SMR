@@ -1,0 +1,226 @@
+---
+- name: Create deploy artifact
+  hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: ensure no old artifacts
+      run_once: true
+      local_action:
+        module: file
+        path: "./parallel-SMR.zip"
+        state: absent
+      tags:
+        - deploy
+        - zip
+    - name: zip config, lib, and dist files
+      run_once: true
+      local_action:
+        module: archive
+        path:
+          - ../dist
+          - ../lib
+          - ../config
+        dest: ./parallel-SMR.zip
+        format: zip
+      tags:
+        - deploy
+        - zip
+
+- name: Deploy and/or config parallel-SMR
+  hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    - tmp_path: /tmp
+    - experiment_path: "{{ tmp_path }}/parallel-SMR"
+  tasks:
+    - name: gather custom facts
+      set_fact:
+        id: "{{ groups[group_names[0]].index(inventory_hostname) }}"
+      tags:
+        - deploy
+        - config
+        - run
+        - servers
+        - clients
+        - fetch
+    - name: ensure experiment path
+      file:
+        path: "{{ experiment_path }}"
+        state: directory
+      tags:
+        - deploy
+    - name: deploy parallel-SMR
+      unarchive:
+        src: ./parallel-SMR.zip
+        dest: "{{ experiment_path }}"
+      when: not ansible_check_mode
+      tags:
+        - deploy
+    - name: create hosts.config
+      template:
+        src: ./hosts.config.j2
+        dest: "{{ experiment_path }}/config/hosts.config"
+      tags:
+        - deploy
+        - config
+    - name: ensure no currentView file
+      file:
+        path: "{{ experiment_path }}/config/currentView"
+        state: absent
+      tags:
+        - deploy
+        - config
+
+- name: Run servers
+  hosts: servers
+  gather_facts: false
+  any_errors_fatal: true
+  serial: 1
+  vars:
+    - server_threads: 1
+    - keys: 1000
+    - experiment_path: /tmp/parallel-SMR
+    - run_cmd: "java -cp dist/BFT-SMaRt-Parallel.jar:lib/bft-smart.jar:lib/slf4j-api-1.5.8.jar:lib/slf4j-jdk14-1.5.8.jar:lib/netty-all-4.0.36.Final.jar:lib/commons-codec-1.5.jar:lib/metrics-core-4.1.8.jar"
+  tasks:
+    - name: ensure no old files
+      file:
+        path: "{{ experiment_path }}/metrics"
+        state: absent
+      tags:
+        - run
+        - servers
+    - name: run server
+      shell:
+        chdir: "{{ experiment_path }}"
+        cmd: "{{ run_cmd }} demo.dict.DictServer '{{ id }}' '{{ server_threads }}' '{{ keys }}'"
+      async: 600 # 10m
+      poll: 0
+      when: not ansible_check_mode
+      tags:
+        - run
+        - servers
+
+- name: Run clients
+  hosts: clients
+  gather_facts: false
+  any_errors_fatal: true
+  serial: "{{ groups['clients'] | length }}"
+  vars:
+    - experiment_path: /tmp/parallel-SMR
+    - client_threads: 64
+    - ops_per_request: 50
+    - keys: 1000
+    - duration_sec: 300
+    - key_sparseness: 0.3
+    - conflict_percent: 0.3
+    - run_cmd: "java -cp dist/BFT-SMaRt-Parallel.jar:lib/bft-smart.jar:lib/slf4j-api-1.5.8.jar:lib/slf4j-jdk14-1.5.8.jar:lib/netty-all-4.0.36.Final.jar:lib/commons-codec-1.5.jar:lib/metrics-core-4.1.8.jar"
+  tasks:
+    - name: run client
+      shell:
+        chdir: "{{ experiment_path }}"
+        cmd: "{{ run_cmd }} demo.dict.DictClient '{{ (id|int * 1000) + 4001 }}' '{{ client_threads }}' '{{ ops_per_request }}' '{{ keys }}' '{{ duration_sec }}' '{{ key_sparseness }}' '{{ conflict_percent }}'"
+      async: 600 # 10m
+      poll: 10
+      when: not ansible_check_mode
+      tags:
+        - run
+        - clients
+
+- name: Stop running processes
+  hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    - experiment_path: /tmp/parallel-SMR
+  tasks:
+    - name: get java pids
+      shell:
+        cmd: "jps -lm | grep 'demo.dict' | awk '{print $1}'"
+      register: java_pids
+      when: not ansible_check_mode
+      tags:
+        - stop
+    - name: kill running processes
+      shell:
+        cmd: "kill -9 {{ item }}"
+      with_items: "{{ java_pids.stdout_lines }}"
+      when: not ansible_check_mode
+      register: kill_result
+      failed_when: "kill_result.rc != 0 and 'No such process' not in kill_result.stderr"
+      tags:
+        - stop
+
+- name: Cleanup local results folder
+  hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    - results_path: "./results"
+  tasks:
+    - name: clean up old results
+      run_once: true
+      local_action:
+        module: file
+        path: "{{ results_path }}"
+        state: absent
+      tags:
+        - fetch
+
+- name: Gather results
+  hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    - results_path: "./results"
+    - experiment_path: "/tmp/parallel-SMR"
+  tasks:
+    - name: ensure no old metrics zip
+      file:
+        path: "{{ experiment_path }}/metrics.zip"
+        state: absent
+      tags:
+        - fetch
+    - name: zip metrics
+      archive:
+        path: "{{ experiment_path }}/metrics"
+        dest: "{{ experiment_path }}/metrics.zip"
+        format: zip
+      tags:
+        - fetch
+    - name: fetch metrics.zip
+      fetch:
+        src: "{{ experiment_path }}/metrics.zip"
+        dest: "{{ results_path }}"
+      register: fetched_zip
+      tags:
+        - fetch
+    - name: unzip metrics.zip
+      local_action:
+        module: unarchive
+        src: "{{ fetched_zip.dest }}"
+        dest: "{{ fetched_zip.dest | dirname }}"
+      tags:
+        - fetch
+    - name: remove metrics.zip
+      local_action:
+        module: file
+        path: "{{ fetched_zip.dest }}"
+        state: absent
+      tags:
+        - fetch
+
+- name: Cleanup hosts
+  hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    - experiment_path: /tmp/parallel-SMR
+  tasks:
+    - name: clean up {{ experiment_path }}
+      file:
+        path: "{{ experiment_path }}"
+        state: absent
+      tags:
+        - cleanup

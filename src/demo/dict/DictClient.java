@@ -78,7 +78,7 @@ final class DictClient extends Thread {
                             "<threads> " +
                             "<ops per request> " +
                             "<max key> " +
-                            "<max duration sec> " +
+                            "<duration sec> " +
                             "<key sparseness> " +
                             "<conflict percentage>"
             );
@@ -126,14 +126,13 @@ final class DictClient extends Thread {
                                     int nThreads,
                                     int opsPerRequest,
                                     int maxKey,
-                                    int maxDurationSec,
+                                    int durationSec,
                                     float keySparseness,
                                     float conflictPercentage,
                                     File metricsPath)
             throws InterruptedException {
 
         MetricRegistry metrics = new MetricRegistry();
-
 
         for (int i = 0; i < nThreads; i++) {
             new DictClient(
@@ -148,7 +147,7 @@ final class DictClient extends Thread {
 
         LOGGER.info("All clients started... running workload...");
         startReporting(metrics, metricsPath);
-        Thread.sleep(maxDurationSec * 1000);
+        Thread.sleep(durationSec * 1000);
         LOGGER.info("Workload completed. Shutting down...");
         System.exit(0);
     }

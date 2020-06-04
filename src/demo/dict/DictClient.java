@@ -3,15 +3,15 @@ package demo.dict;
 import bftsmart.tom.ParallelServiceProxy;
 import bftsmart.util.MultiOperationRequest;
 import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import parallelism.ParallelMapping;
 
+import java.io.File;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,8 +22,6 @@ final class DictClient extends Thread {
     private static final Logger LOGGER = Logger.getLogger(DictClient.class.getName());
 
     private final ParallelServiceProxy proxy;
-    private final AtomicInteger nRequests;
-    private final CountDownLatch completed;
     private final Timer requestTimer;
     private final int opsPerRequest;
     private final int maxKey;
@@ -35,33 +33,26 @@ final class DictClient extends Thread {
                        int maxKey,
                        float keySparseness,
                        float conflictPercentage,
-                       AtomicInteger nRequests,
-                       CountDownLatch completed,
-                       Timer requestTimer) {
+                       MetricRegistry metrics) {
         super("DictClient-" + clientID);
         this.proxy = new ParallelServiceProxy(clientID);
         this.opsPerRequest = opsPerRequest;
         this.maxKey = maxKey;
         this.keySparseness = keySparseness;
         this.conflictPercentage = conflictPercentage;
-        this.nRequests = nRequests;
-        this.completed = completed;
-        this.requestTimer = requestTimer;
+        this.requestTimer = metrics.timer(name(DictClient.class, "requests"));
+        ;
     }
 
     @Override
+    @SuppressWarnings("InfiniteLoopStatement")
     public void run() {
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        while (nRequests.decrementAndGet() >= 0) {
-            sendRequest(random);
-        }
-        completed.countDown();
-    }
-
-    private void sendRequest(Random random) {
-        MultiOperationRequest request = newRequest(random);
-        try (Timer.Context ignored = requestTimer.time()) {
-            proxy.invokeParallel(request.serialize(), ParallelMapping.SYNC_ALL);
+        for (; ; ) {
+            MultiOperationRequest request = newRequest(random);
+            try (Timer.Context ignored = requestTimer.time()) {
+                proxy.invokeParallel(request.serialize(), ParallelMapping.SYNC_ALL);
+            }
         }
     }
 
@@ -80,16 +71,15 @@ final class DictClient extends Thread {
     }
 
     public static void main(String[] args) {
-        if (args.length != 8) {
+        if (args.length != 7) {
             System.out.println(
                     "Usage: DictClient " +
                             "<process id> " +
                             "<threads> " +
                             "<ops per request> " +
-                            "<requests> " +
                             "<max key> " +
                             "<max duration sec> " +
-                            "<key sparseness>" +
+                            "<key sparseness> " +
                             "<conflict percentage>"
             );
             System.exit(1);
@@ -102,9 +92,9 @@ final class DictClient extends Thread {
                     Integer.parseInt(args[2]),
                     Integer.parseInt(args[3]),
                     Integer.parseInt(args[4]),
-                    Integer.parseInt(args[5]),
+                    Float.parseFloat(args[5]),
                     Float.parseFloat(args[6]),
-                    Float.parseFloat(args[7])
+                    createMetricsDirectory()
             );
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Invalid arguments", e);
@@ -118,35 +108,59 @@ final class DictClient extends Thread {
         System.exit(0);
     }
 
+    private static File createMetricsDirectory() {
+        File dir = new File("./metrics");
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                System.out.println("Can not create ./metrics directory.");
+                System.exit(1);
+            }
+        } else if (!dir.isDirectory()) {
+            System.out.println("./metrics must be a directory");
+            System.exit(1);
+        }
+        return dir;
+    }
+
     private static void runWorkload(int processID,
                                     int nThreads,
                                     int opsPerRequest,
-                                    int nRequests,
                                     int maxKey,
                                     int maxDurationSec,
                                     float keySparseness,
-                                    float conflictPercentage)
+                                    float conflictPercentage,
+                                    File metricsPath)
             throws InterruptedException {
 
         MetricRegistry metrics = new MetricRegistry();
-        CountDownLatch completed = new CountDownLatch(nThreads);
-        startClients(
-                processID,
-                nThreads,
-                opsPerRequest,
-                nRequests,
-                maxKey,
-                keySparseness,
-                conflictPercentage,
-                completed,
-                metrics
-        );
+
+
+        for (int i = 0; i < nThreads; i++) {
+            new DictClient(
+                    processID + i,
+                    opsPerRequest,
+                    maxKey,
+                    keySparseness,
+                    conflictPercentage,
+                    metrics
+            ).start();
+        }
+
         LOGGER.info("All clients started... running workload...");
-        startReporting(metrics);
-        completed.await(maxDurationSec, TimeUnit.SECONDS);
+        startReporting(metrics, metricsPath);
+        Thread.sleep(maxDurationSec * 1000);
+        LOGGER.info("Workload completed. Shutting down...");
+        System.exit(0);
     }
 
-    private static void startReporting(MetricRegistry metrics) {
+    private static void startReporting(MetricRegistry metrics, File path) {
+        CsvReporter csvReporter =
+                CsvReporter
+                        .forRegistry(metrics)
+                        .convertRatesTo(TimeUnit.SECONDS)
+                        .build(path);
+        csvReporter.start(1, TimeUnit.SECONDS);
+
         ConsoleReporter consoleReporter =
                 ConsoleReporter
                         .forRegistry(metrics)
@@ -155,30 +169,4 @@ final class DictClient extends Thread {
         consoleReporter.start(10, TimeUnit.SECONDS);
     }
 
-    private static void startClients(int processID,
-                                     int nThreads,
-                                     int opsPerRequest,
-                                     int nRequests,
-                                     int maxKey,
-                                     float conflictSD,
-                                     float conflictPercentage,
-                                     CountDownLatch completed,
-                                     MetricRegistry metrics) {
-
-        AtomicInteger requests = new AtomicInteger(nRequests);
-        Timer requestTimer = metrics.timer(name(DictClient.class, "requests"));
-
-        for (int i = 0; i < nThreads; i++) {
-            new DictClient(
-                    processID + i,
-                    opsPerRequest,
-                    maxKey,
-                    conflictSD,
-                    conflictPercentage,
-                    requests,
-                    completed,
-                    requestTimer
-            ).start();
-        }
-    }
 }

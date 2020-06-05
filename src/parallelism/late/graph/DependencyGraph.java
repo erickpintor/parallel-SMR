@@ -24,9 +24,11 @@ public abstract class DependencyGraph extends COS{
     protected vNode head;                                 // always exist
     protected vNode tail;                                 // in the list: lower and highest
 
-    
-    
-    public DependencyGraph(int limit, CBASEScheduler scheduler, MetricRegistry metrics){
+
+
+    public DependencyGraph(int limit,
+                           CBASEScheduler scheduler,
+                           MetricRegistry metrics) {
         super(limit,scheduler, metrics);
         head = new vNode(null, Vertex.HEAD);
         tail = new vNode(null, Vertex.TAIL);

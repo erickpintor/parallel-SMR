@@ -19,42 +19,25 @@ import static com.codahale.metrics.MetricRegistry.name;
  */
 public abstract class COS {
 
-    private final class Stats {
-        private final Histogram size;
-        private final Histogram free;
+    private static final class Stats {
+        final Histogram size;
+        final Histogram ready;
 
         Stats(MetricRegistry metrics) {
             size = metrics.histogram(name(COS.class, "size"));
-            free = metrics.histogram(name(COS.class, "free"));
-            metrics.register(name(COS.class, "conflict"), new RatioGauge() {
-                @Override
-                protected Ratio getRatio() {
-                    return Ratio.of(
-                            free.getSnapshot().getMean(),
-                            size.getSnapshot().getMean());
-                }
-                @Override
-                public Double getValue() {
-                    return Math.max(1 - super.getValue(), 0);
-                }
-            });
-        }
-
-        void update() {
-            size.update(COS.this.size.intValue());
-            free.update(COS.this.free.intValue());
+            ready = metrics.histogram(name(COS.class, "ready"));
         }
     }
 
-    private final LongAdder size = new LongAdder();
-    private final LongAdder free = new LongAdder();
     private final Semaphore ready = new Semaphore(0);  // tells if there is ready to execute
     private final Semaphore space;                     // counting semaphore for size of graph
+    private final int limit;
     private Stats stats;
 
     protected CBASEScheduler scheduler;
 
     public COS(int limit, CBASEScheduler scheduler, MetricRegistry metrics) {
+        this.limit = limit;
         this.space = new Semaphore(limit);
         this.scheduler = scheduler;
         if (metrics != null) {
@@ -68,12 +51,10 @@ public abstract class COS {
 
     public void insert(Object request) throws InterruptedException {
         space.acquire();
-        int nReady = COSInsert(request);
-        ready.release(nReady);
+        ready.release(COSInsert(request));
         if (stats != null) {
-            size.increment();
-            free.add(nReady);
-            stats.update();
+            stats.size.update(limit - space.availablePermits());
+            stats.ready.update(ready.availablePermits());
         }
     }
 
@@ -81,11 +62,6 @@ public abstract class COS {
         int nReady = COSRemove(requestNode);
         space.release();
         ready.release(nReady);
-        if (stats != null) {
-            free.add(-1 + nReady);
-            size.decrement();
-            stats.update();
-        }
     }
 
     public Object get() throws InterruptedException {

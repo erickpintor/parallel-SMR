@@ -23,7 +23,11 @@ final class DictServer implements SingleExecutable {
 
     private final Map<Integer, Integer> dict;
 
-    private DictServer(int processID, int nThreads, int nKeys, File metricsPath) {
+    private DictServer(int processID,
+                       int nThreads,
+                       int nKeys,
+                       boolean logMetrics,
+                       File metricsPath) {
         dict = new HashMap<>(nKeys);
         for (int i = 0; i < nKeys; i++)
             dict.put(i, 0);
@@ -38,10 +42,12 @@ final class DictServer implements SingleExecutable {
                 COSType.lockFreeGraph,
                 metrics
         );
-        startReporting(metrics, metricsPath);
+        startReporting(metrics, logMetrics, metricsPath);
     }
 
-    private static void startReporting(MetricRegistry metrics, File path) {
+    private static void startReporting(MetricRegistry metrics,
+                                       boolean logMetrics,
+                                       File path) {
         CsvReporter csvReporter =
                 CsvReporter
                         .forRegistry(metrics)
@@ -49,12 +55,14 @@ final class DictServer implements SingleExecutable {
                         .build(path);
         csvReporter.start(1, TimeUnit.SECONDS);
 
-        ConsoleReporter consoleReporter =
-                ConsoleReporter
-                        .forRegistry(metrics)
-                        .convertRatesTo(TimeUnit.SECONDS)
-                        .build();
-        consoleReporter.start(10, TimeUnit.SECONDS);
+        if (logMetrics) {
+            ConsoleReporter consoleReporter =
+                    ConsoleReporter
+                            .forRegistry(metrics)
+                            .convertRatesTo(TimeUnit.SECONDS)
+                            .build();
+            consoleReporter.start(10, TimeUnit.SECONDS);
+        }
     }
 
     private boolean isConflicting(MessageContextPair a,
@@ -82,8 +90,12 @@ final class DictServer implements SingleExecutable {
     }
 
     public static void main(String[] args) {
-        if (args.length != 3) {
-            System.out.println("Usage: DictServer <processID> <threads> <keys>");
+        if (args.length != 4) {
+            System.out.println("Usage: DictServer " +
+                    "<processID> " +
+                    "<threads> " +
+                    "<keys> " +
+                    "<log metrics?>");
             System.exit(1);
         }
 
@@ -91,8 +103,9 @@ final class DictServer implements SingleExecutable {
             int processID = Integer.parseInt(args[0]);
             int nThreads = Integer.parseInt(args[1]);
             int nKeys = Integer.parseInt(args[2]);
+            boolean logMetrics = Boolean.parseBoolean(args[3]);
             File metricsPath = createMetricsDirectory();
-            new DictServer(processID, nThreads, nKeys, metricsPath);
+            new DictServer(processID, nThreads, nKeys, logMetrics, metricsPath);
             LOGGER.info("Server initialization completed.");
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Invalid arguments.", e);

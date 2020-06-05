@@ -41,7 +41,6 @@ final class DictClient extends Thread {
         this.keySparseness = keySparseness;
         this.conflictPercentage = conflictPercentage;
         this.requestTimer = metrics.timer(name(DictClient.class, "requests"));
-        ;
     }
 
     @Override
@@ -71,7 +70,7 @@ final class DictClient extends Thread {
     }
 
     public static void main(String[] args) {
-        if (args.length != 7) {
+        if (args.length != 8) {
             System.out.println(
                     "Usage: DictClient " +
                             "<process id> " +
@@ -80,7 +79,8 @@ final class DictClient extends Thread {
                             "<max key> " +
                             "<duration sec> " +
                             "<key sparseness> " +
-                            "<conflict percentage>"
+                            "<conflict percentage> " +
+                            "<log metrics?>"
             );
             System.exit(1);
         }
@@ -94,6 +94,7 @@ final class DictClient extends Thread {
                     Integer.parseInt(args[4]),
                     Float.parseFloat(args[5]),
                     Float.parseFloat(args[6]),
+                    Boolean.parseBoolean(args[7]),
                     createMetricsDirectory()
             );
         } catch (NumberFormatException e) {
@@ -129,6 +130,7 @@ final class DictClient extends Thread {
                                     int durationSec,
                                     float keySparseness,
                                     float conflictPercentage,
+                                    boolean logMetrics,
                                     File metricsPath)
             throws InterruptedException {
 
@@ -146,13 +148,15 @@ final class DictClient extends Thread {
         }
 
         LOGGER.info("All clients started... running workload...");
-        startReporting(metrics, metricsPath);
+        startReporting(metrics, logMetrics, metricsPath);
         Thread.sleep(durationSec * 1000);
         LOGGER.info("Workload completed. Shutting down...");
         System.exit(0);
     }
 
-    private static void startReporting(MetricRegistry metrics, File path) {
+    private static void startReporting(MetricRegistry metrics,
+                                       boolean logMetrics,
+                                       File path) {
         CsvReporter csvReporter =
                 CsvReporter
                         .forRegistry(metrics)
@@ -160,12 +164,14 @@ final class DictClient extends Thread {
                         .build(path);
         csvReporter.start(1, TimeUnit.SECONDS);
 
-        ConsoleReporter consoleReporter =
-                ConsoleReporter
-                        .forRegistry(metrics)
-                        .convertRatesTo(TimeUnit.SECONDS)
-                        .build();
-        consoleReporter.start(10, TimeUnit.SECONDS);
+        if (logMetrics) {
+            ConsoleReporter consoleReporter =
+                    ConsoleReporter
+                            .forRegistry(metrics)
+                            .convertRatesTo(TimeUnit.SECONDS)
+                            .build();
+            consoleReporter.start(10, TimeUnit.SECONDS);
+        }
     }
 
 }

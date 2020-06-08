@@ -11,8 +11,8 @@ import parallelism.late.COSType;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,13 +22,18 @@ final class DictServer implements SingleExecutable {
     private static final Logger LOGGER = Logger.getLogger(DictServer.class.getName());
 
     private final Map<Integer, Integer> dict;
+    private final SyntacticDelay delay;
 
     private DictServer(int processID,
                        int nThreads,
                        int nKeys,
+                       int costPerOpMs,
                        boolean logMetrics,
                        File metricsPath) {
-        dict = new HashMap<>(nKeys);
+        // NB. Uses concurrent map for read consistency, however, no contention write
+        // contention occurs as writes are properly linearized by the scheduler.
+        dict = new ConcurrentHashMap<>(nKeys);
+        delay = new SyntacticDelay(costPerOpMs);
         for (int i = 0; i < nKeys; i++)
             dict.put(i, 0);
 
@@ -83,18 +88,21 @@ final class DictServer implements SingleExecutable {
     }
 
     private byte[] execute(byte[] bytes) {
-        Command cmd = Command.wrap(bytes);
-        ByteBuffer resp = ByteBuffer.allocate(4);
-        resp.putInt(cmd.execute(dict));
-        return resp.array();
+        return delay.ensureMinCost(() -> {
+            Command cmd = Command.wrap(bytes);
+            ByteBuffer resp = ByteBuffer.allocate(4);
+            resp.putInt(cmd.execute(dict));
+            return resp.array();
+        });
     }
 
     public static void main(String[] args) {
-        if (args.length != 4) {
+        if (args.length != 5) {
             System.out.println("Usage: DictServer " +
                     "<processID> " +
                     "<threads> " +
                     "<keys> " +
+                    "<cost-per-op-ms> " +
                     "<log metrics?>");
             System.exit(1);
         }
@@ -103,9 +111,10 @@ final class DictServer implements SingleExecutable {
             int processID = Integer.parseInt(args[0]);
             int nThreads = Integer.parseInt(args[1]);
             int nKeys = Integer.parseInt(args[2]);
-            boolean logMetrics = Boolean.parseBoolean(args[3]);
+            int costPerOpMs = Integer.parseInt(args[3]);
+            boolean logMetrics = Boolean.parseBoolean(args[4]);
             File metricsPath = createMetricsDirectory();
-            new DictServer(processID, nThreads, nKeys, logMetrics, metricsPath);
+            new DictServer(processID, nThreads, nKeys, costPerOpMs, logMetrics, metricsPath);
             LOGGER.info("Server initialization completed.");
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Invalid arguments.", e);

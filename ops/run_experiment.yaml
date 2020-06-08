@@ -81,6 +81,7 @@
   vars:
     - keys: 1000
     - server_threads: 1
+    - cost_per_op_ms: 5
     - log_metrics: "false"
     - experiment_path: /tmp/parallel-SMR
     - run_cmd: "java -cp dist/BFT-SMaRt-Parallel.jar:lib/bft-smart.jar:lib/slf4j-api-1.5.8.jar:lib/slf4j-jdk14-1.5.8.jar:lib/netty-all-4.0.36.Final.jar:lib/commons-codec-1.5.jar:lib/metrics-core-4.1.8.jar"
@@ -95,7 +96,7 @@
     - name: run server
       shell:
         chdir: "{{ experiment_path }}"
-        cmd: "{{ run_cmd }} demo.dict.DictServer '{{ id }}' '{{ server_threads }}' '{{ keys }}' '{{ log_metrics }}'"
+        cmd: "{{ run_cmd }} demo.dict.DictServer '{{ id }}' '{{ server_threads }}' '{{ keys }}' '{{ cost_per_op_ms }}' '{{ log_metrics }}'"
       async: 900 # 15m
       poll: 0
       when: not ansible_check_mode

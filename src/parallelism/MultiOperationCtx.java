@@ -20,7 +20,7 @@ public class MultiOperationCtx {
     
     public AtomicInteger interger = new AtomicInteger();
     
-    public boolean finished = false;
+    public volatile boolean finished = false;
     
     public MultiOperationCtx(int size, TOMMessage request){
         response = new MultiOperationResponse(size);

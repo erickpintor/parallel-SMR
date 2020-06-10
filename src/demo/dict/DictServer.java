@@ -8,6 +8,7 @@ import com.codahale.metrics.MetricRegistry;
 import parallelism.MessageContextPair;
 import parallelism.late.CBASEServiceReplica;
 import parallelism.late.COSType;
+import parallelism.pooled.PooledServiceReplica;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -21,6 +22,11 @@ final class DictServer implements SingleExecutable {
 
     private static final Logger LOGGER = Logger.getLogger(DictServer.class.getName());
 
+    private enum SchedulerType {
+        POOLED,
+        NON_POOLED;
+    }
+
     private final Map<Integer, Integer> dict;
     private final SyntacticDelay delay;
 
@@ -29,7 +35,8 @@ final class DictServer implements SingleExecutable {
                        int nKeys,
                        int costPerOpMs,
                        boolean logMetrics,
-                       File metricsPath) {
+                       File metricsPath,
+                       SchedulerType schedulerType) {
         // NB. Uses concurrent map for read consistency, however, no contention write
         // contention occurs as writes are properly linearized by the scheduler.
         dict = new ConcurrentHashMap<>(nKeys);
@@ -38,16 +45,37 @@ final class DictServer implements SingleExecutable {
             dict.put(i, 0);
 
         MetricRegistry metrics = new MetricRegistry();
-        new CBASEServiceReplica(
-                processID,
-                this,
-                null,
-                nThreads,
-                this::isConflicting,
-                COSType.lockFreeGraph,
-                metrics
-        );
+        startScheduler(processID, nThreads, schedulerType, metrics);
         startReporting(metrics, logMetrics, metricsPath);
+    }
+
+    private void startScheduler(int processID,
+                                int nThreads,
+                                SchedulerType schedulerType,
+                                MetricRegistry metrics) {
+        switch (schedulerType) {
+            case NON_POOLED:
+                new CBASEServiceReplica(
+                        processID,
+                        this,
+                        null,
+                        nThreads,
+                        this::isConflicting,
+                        COSType.lockFreeGraph,
+                        metrics
+                );
+                break;
+            case POOLED:
+                new PooledServiceReplica(
+                        processID,
+                        nThreads,
+                        this,
+                        null,
+                        this::isConflicting,
+                        metrics
+                );
+                break;
+        }
     }
 
     private static void startReporting(MetricRegistry metrics,
@@ -97,13 +125,15 @@ final class DictServer implements SingleExecutable {
     }
 
     public static void main(String[] args) {
-        if (args.length != 5) {
+        if (args.length != 6) {
             System.out.println("Usage: DictServer " +
                     "<processID> " +
                     "<threads> " +
                     "<keys> " +
                     "<cost-per-op-ms> " +
-                    "<log metrics?>");
+                    "<log metrics?> " +
+                    "<scheduler>"
+            );
             System.exit(1);
         }
 
@@ -113,10 +143,19 @@ final class DictServer implements SingleExecutable {
             int nKeys = Integer.parseInt(args[2]);
             int costPerOpMs = Integer.parseInt(args[3]);
             boolean logMetrics = Boolean.parseBoolean(args[4]);
+            SchedulerType schedulerType = SchedulerType.valueOf(args[5]);
             File metricsPath = createMetricsDirectory();
-            new DictServer(processID, nThreads, nKeys, costPerOpMs, logMetrics, metricsPath);
+            new DictServer(
+                    processID,
+                    nThreads,
+                    nKeys,
+                    costPerOpMs,
+                    logMetrics,
+                    metricsPath,
+                    schedulerType
+            );
             LOGGER.info("Server initialization completed.");
-        } catch (NumberFormatException e) {
+        } catch (IllegalArgumentException e) {
             LOGGER.log(Level.SEVERE, "Invalid arguments.", e);
             System.exit(1);
         }

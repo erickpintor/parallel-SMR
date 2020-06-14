@@ -112,8 +112,8 @@
   serial: "{{ groups['clients'] | length }}"
   vars:
     - keys: 1000
-    - client_threads: 64
-    - ops_per_request: 50
+    - client_threads: 1
+    - ops_per_request: 35
     - duration_sec: 600
     - key_sparseness: 0.5
     - conflict_percent: 0.5

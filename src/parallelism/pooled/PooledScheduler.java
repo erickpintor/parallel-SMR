@@ -10,10 +10,7 @@ import parallelism.scheduler.Scheduler;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import static com.codahale.metrics.MetricRegistry.name;
@@ -56,10 +53,12 @@ final class PooledScheduler implements Scheduler {
                     MetricRegistry metrics) {
         this.nThreads = nThreads;
         this.conflict = conflict;
-        this.pool = Executors.newWorkStealingPool(nThreads);
         this.space = new Semaphore(MAX_SIZE);
         this.scheduled = new LinkedList<>();
         this.stats = new Stats(metrics);
+        this.pool = new ForkJoinPool(
+                nThreads, ForkJoinPool.defaultForkJoinWorkerThreadFactory,
+                null, true, nThreads, nThreads, 0, null, 60, TimeUnit.SECONDS);
     }
 
     // Breaks cyclic dependency with PooledServiceReplica

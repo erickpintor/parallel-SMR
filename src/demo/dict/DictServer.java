@@ -12,8 +12,8 @@ import parallelism.pooled.PooledServiceReplica;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,9 +37,7 @@ final class DictServer implements SingleExecutable {
                        boolean logMetrics,
                        File metricsPath,
                        SchedulerType schedulerType) {
-        // NB. Uses concurrent map for read consistency, however, no contention write
-        // contention occurs as writes are properly linearized by the scheduler.
-        dict = new ConcurrentHashMap<>(nKeys);
+        dict = new HashMap<>(nKeys);
         delay = new SyntacticDelay(costPerOpMs);
         for (int i = 0; i < nKeys; i++)
             dict.put(i, 0);

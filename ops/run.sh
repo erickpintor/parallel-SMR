@@ -4,7 +4,7 @@ set -x -e
 
 for server_threads in "1" "2" "4" "8" "16" "32" "64"
 do
-    for workload in "4000" "40000" "400000"
+    for workload in "3000" "30000" "300000"
     do
         for scheduler_type in "NON_POOLED" "POOLED"
         do
@@ -29,7 +29,7 @@ done
 
 for conflict_sd in "0" "0.25" "0.5" "0.75" "1"
 do
-    for workload in "4000" "40000" "400000"
+    for workload in "3000" "30000" "300000"
     do
         for scheduler_type in "NON_POOLED" "POOLED"
         do

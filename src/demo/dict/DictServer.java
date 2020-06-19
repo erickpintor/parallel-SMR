@@ -33,12 +33,12 @@ final class DictServer implements SingleExecutable {
     private DictServer(int processID,
                        int nThreads,
                        int nKeys,
-                       int costPerOpMs,
+                       int costPerOpNS,
                        boolean logMetrics,
                        File metricsPath,
                        SchedulerType schedulerType) {
         dict = new HashMap<>(nKeys);
-        delay = new SyntacticDelay(costPerOpMs);
+        delay = new SyntacticDelay(costPerOpNS);
         for (int i = 0; i < nKeys; i++)
             dict.put(i, 0);
 
@@ -128,7 +128,7 @@ final class DictServer implements SingleExecutable {
                     "<processID> " +
                     "<threads> " +
                     "<keys> " +
-                    "<cost-per-op-ms> " +
+                    "<cost-per-op-ns> " +
                     "<log metrics?> " +
                     "<scheduler>"
             );
@@ -139,7 +139,7 @@ final class DictServer implements SingleExecutable {
             int processID = Integer.parseInt(args[0]);
             int nThreads = Integer.parseInt(args[1]);
             int nKeys = Integer.parseInt(args[2]);
-            int costPerOpMs = Integer.parseInt(args[3]);
+            int costPerOpNS = Integer.parseInt(args[3]);
             boolean logMetrics = Boolean.parseBoolean(args[4]);
             SchedulerType schedulerType = SchedulerType.valueOf(args[5]);
             File metricsPath = createMetricsDirectory();
@@ -147,7 +147,7 @@ final class DictServer implements SingleExecutable {
                     processID,
                     nThreads,
                     nKeys,
-                    costPerOpMs,
+                    costPerOpNS,
                     logMetrics,
                     metricsPath,
                     schedulerType

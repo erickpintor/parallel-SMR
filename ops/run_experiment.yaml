@@ -81,7 +81,7 @@
   vars:
     - keys: 1000
     - server_threads: 1
-    - cost_per_op_ns: 3000 # 3 micros
+    - cost_per_op_ns: 5000 # 5 micros
     - log_metrics: "false"
     - scheduler_type: "POOLED"
     - experiment_path: /tmp/parallel-SMR

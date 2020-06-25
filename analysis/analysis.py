@@ -113,15 +113,15 @@ def plot(plot_fn, **kwargs):
         legend = kwargs['legend']
         ax.legend(legend, ncol=len(legend))
     
-def prefixed(prefix, args):
-    res = {}
-    for (key, value) in args.items():
-        if key.startswith(prefix):
-            key = key[len(prefix):]
-            res[key] = value
-    return res
-
 def plot_2columns(lhs, rhs, **kwargs):
+    def prefixed(prefix, args):
+        res = {}
+        for (key, value) in args.items():
+            if key.startswith(prefix):
+                key = key[len(prefix):]
+                res[key] = value
+        return res
+
     fig = None
     if 'axs' not in kwargs:
         fig, (axl, axr) = plt.subplots(ncols=2, figsize=(14, 4))
@@ -281,14 +281,14 @@ class ExperimentOverview:
     
 # Consolidated view -----------------------------------------------------------
 
-def consolidated_throughput_per_thread_and_scheduler(basepath, servers, filepattern):
+def consolidate(basepath, servers, filepattern, fn):
     paths = sorted(glob.glob(os.path.join(basepath, filepattern)))
+    if len(paths) == 0:
+        return None
     data = pd.DataFrame()
-
     for path in paths:
         experiment = Experiment(path)
         throughput = pd.Series(dtype='int64')
-
         for server in servers:
             commands = experiment.server_commands_throughtput(server)
             throughput = throughput.combine(
@@ -296,48 +296,67 @@ def consolidated_throughput_per_thread_and_scheduler(basepath, servers, filepatt
                 lambda a, b: a + b,
                 fill_value=0
             )
-        
-        data = data.append({
+        data = fn(data, experiment, throughput) 
+    return data
+
+def consolidated_throughput_per_thread_and_scheduler(basepath, servers, filepattern, **kwargs):
+    def aggregate(data, experiment, throughput):
+        return data.append({
             'threads': experiment.server_threads,
             'scheduler': experiment.scheduler_type,
             'throughput': throughput.mean()
         }, ignore_index=True)
-        
+    
+    data = consolidate(basepath, servers, filepattern, aggregate)
+    if data is None:
+        return kwargs.get('ax')
+    
     data = data.astype({ 'threads': 'int64' })
     data = data.pivot(index='threads', columns='scheduler', values='throughput')
-    ax = data.plot.bar(title='Thoughtput per Implementation', rot=0)
+    ax = data.plot.bar(rot=0, ax=kwargs.get('ax'))
     ax.legend(['Non-pooled', 'Pooled'], loc='upper left')
     ax.set_xlabel('Number of worker threads')
     ax.set_ylabel('Requests / Second')
+    return ax
 
-def consolidated_throughput_per_conflict_and_scheduler(basepath, servers, filepattern):
-    paths = sorted(glob.glob(os.path.join(basepath, filepattern)))
-    data = pd.DataFrame()
-
-    for path in paths:
-        experiment = Experiment(path)
-        throughput = pd.Series(dtype='int64')
-
-        for server in servers:
-            commands = experiment.server_commands_throughtput(server)
-            throughput = throughput.combine(
-                commands.data['s1_rate'],
-                lambda a, b: a + b,
-                fill_value=0
-            )
-        
-        data = data.append({
-            'conflict': experiment.conflict,
+def consolidated_throughput_per_conflict_and_scheduler(basepath, servers, filepattern, **kwargs):
+    def aggregate(data, experiment, throughput):
+        return data.append({
+            'sparseness': experiment.sparseness,
             'scheduler': experiment.scheduler_type,
             'throughput': throughput.mean()
         }, ignore_index=True)
-        
-    data = data.astype({ 'conflict': 'int64' })
-    data = data.pivot(index='conflict', columns='scheduler', values='throughput')
-    ax = data.plot.bar(title='Thoughtput per Implementation', rot=0)
+    
+    data = consolidate(basepath, servers, filepattern, aggregate)
+    if data is None:
+        return kwargs.get('ax')
+    
+    data = data.astype({ 'sparseness': 'int64' })
+    data = data.pivot(index='sparseness', columns='scheduler', values='throughput')
+    ax = data.plot.bar(rot=0, ax=kwargs.get('ax'))
     ax.legend(['Non-pooled', 'Pooled'], loc='upper left')
     ax.set_xlabel('Conflict %')
     ax.set_ylabel('Requests / Second')
+    return ax
+
+def consolidade_side_by_side(fn, basepath, servers, xlabel, patterns):
+    for i in range(len(patterns)):
+        pattern, name, ax = patterns[i]
+        ax = fn(basepath, servers, pattern, ax=ax)        
+        ax.set_xlabel("%s\n%s" % (xlabel, name), fontsize=14)
+        
+        if i == 0:
+            ax.set_ylabel('Requisições por Segundo', fontsize=14)
+        else:
+            ax.set_ylabel(None)
+
+        if i == len(patterns)-1:
+            ax.legend(['Lock-free', 'Java Moderno'], 
+                      ncol=2, 
+                      fontsize=14,
+                      bbox_to_anchor=(1, 1.15))
+        else:
+            ax.legend().remove()
     
 # UI --------------------------------------------------------------------------
 

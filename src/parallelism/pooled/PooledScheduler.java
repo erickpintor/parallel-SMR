@@ -111,9 +111,10 @@ final class PooledScheduler implements Scheduler {
             stats.ready.inc();
             pool.execute(() -> execute(newTask));
         } else {
-            after(dependencies)
-                    .thenRun(stats.ready::inc)
-                    .thenRunAsync(() -> execute(newTask), pool);
+            after(dependencies).thenRun(() -> {
+                stats.ready.inc();
+                execute(newTask);
+            });
         }
     }
 

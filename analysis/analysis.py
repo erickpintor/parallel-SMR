@@ -346,7 +346,7 @@ def consolidade_side_by_side(fn, basepath, servers, xlabel, patterns):
         ax.set_xlabel("%s\n%s" % (xlabel, name), fontsize=14)
         
         if i == 0:
-            ax.set_ylabel('Requisições por Segundo', fontsize=14)
+            ax.set_ylabel('Comandos por Segundo', fontsize=14)
         else:
             ax.set_ylabel(None)
 
